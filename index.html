@@ -16,24 +16,23 @@
 
 
 <body>
-    <button onclick="打开app">toast</button>
+    <button onclick="toast">打开app</button>
     <script>
         function toast() {
             alert('hello world');
-            console.log('hello world');
             // todo: 你的其他逻辑
             window.location.href = 'https://hello-coder-xu.github.io/yinxu';
             console.log('打开App 点击事件')
-            setTimeout(() => {
-                // 如果成功打开了应用，则说明应用已安装
-                if (document.hidden || document.webkitHidden) {
-                    // 应用已安装
-                    window.close()
-                } else {
-                    // 应用未安装
+            // setTimeout(() => {
+            //     // 如果成功打开了应用，则说明应用已安装
+            //     if (document.hidden || document.webkitHidden) {
+            //         // 应用已安装
+            //         window.close()
+            //     } else {
+            //         // 应用未安装
 
-                }
-            }, 2000)
+            //     }
+            // }, 2000)
         }
     </script>
 </body>
