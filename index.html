@@ -14,9 +14,10 @@
     </style>
 </head>
 <script>
-    const btnClick = (e) => {
+    const btn = document.getElementById('btn')
+    btn.addEventListener('click', (e) => {
         alert('click');
-    }
+    })
 
 
     const openApp = (e) => {
@@ -37,9 +38,9 @@
 
 
 <body>
-    <button id="btn" @click="btnClick">click me</button>
+    <button id="btn">click me</button>
 
-    <button @click="openApp">打开App1</button>
+    <button onclick="openApp()">打开App1</button>
 </body>
 
 </html>
