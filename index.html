@@ -18,7 +18,7 @@
 <body>
     <button onclick="openApp()">打开app4</button>
 
-    <button id="checkApp">检查是否安装 WhatsApp</button>
+    <button id="checkApp">检查是否安装</button>
     <p id="result"></p>
 
     <script>
@@ -28,7 +28,7 @@
             iframe.src = urlScheme;
             document.body.appendChild(iframe);
             var start = new Date().getTime();
-            var timeout = 2000; // 2秒超时
+            var timeout = 1000; // 2秒超时
             var interval = setInterval(function () {
                 if (new Date().getTime() - start > timeout) {
                     clearInterval(interval);
@@ -55,7 +55,7 @@
                     if (ua.indexOf('android') > -1) {
                         window.location.href = 'https://play.google.com/store/apps/details?id=com.addcn.android.house591';
                     } else if (ua.indexOf('iphone') > -1 || ua.indexOf('ipad') > -1) {
-                        window.location.href = 'https://itunes.apple.com/cn/app/id-448156496?mt=8';
+                        window.location.href = 'https://itunes.apple.com/cn/app/id/448156496?mt=8';
                     }
                 }
             });
