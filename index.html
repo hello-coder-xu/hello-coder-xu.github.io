@@ -17,11 +17,50 @@
 
 <body>
     <button onclick="openApp()">打开app4</button>
+
+    <button id="checkApp">检查是否安装 WhatsApp</button>
+    <p id="result"></p>
+
     <script>
+        function isAppInstalled(urlScheme, callback) {
+            var iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = urlScheme;
+            document.body.appendChild(iframe);
+            var start = new Date().getTime();
+            var timeout = 2000; // 2秒超时
+            var interval = setInterval(function () {
+                if (new Date().getTime() - start > timeout) {
+                    clearInterval(interval);
+                    document.body.removeChild(iframe);
+                    callback(false);
+                }
+            }, 100);
+            window.addEventListener('blur', function () {
+                clearInterval(interval);
+                document.body.removeChild(iframe);
+                callback(true);
+            });
+        }
+
+        document.getElementById('checkApp').addEventListener('click', function () {
+            isAppInstalled('whatsapp://', function (installed) {
+                var resultElement = document.getElementById('result');
+                if (installed) {
+                    resultElement.textContent = 'WhatsApp 已安装';
+                } else {
+                    resultElement.textContent = 'WhatsApp 未安装';
+                    var ua = navigator.userAgent.toLowerCase();
+                    console.log('ua=' + ua);
+                    window.location.href = 'https://play.google.com/store/apps/details?id=com.addcn.android.house591';
+                }
+            });
+        });
+
+
         function openApp() {
             // todo: 你的其他逻辑
-            // window.location.href = 'https://hello-coder-xu.github.io/yinxu';
-            window.location.href = 'https://play.google.com/store/apps/details?id=com.addcn.android.house591';
+            window.location.href = 'https://hello-coder-xu.github.io/yinxu';
             console.log('打开App 点击事件')
             setTimeout(() => {
                 // 如果成功打开了应用，则说明应用已安装
@@ -42,6 +81,7 @@
             }, 2000)
         }
     </script>
+
 </body>
 
 </html>
