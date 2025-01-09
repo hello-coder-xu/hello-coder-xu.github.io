@@ -16,7 +16,7 @@
 
 
 <body>
-    <button onclick="isAppInstalled()">打开app2</button>
+    <button onclick="isAppInstalled()">打开app3</button>
     <script>
         function openApp() {
             // todo: 你的其他逻辑
@@ -35,7 +35,7 @@
         }
 
 
-        function isAppInstalled(callback) {
+        function isAppInstalled() {
             var iframe = document.createElement('iframe');
             iframe.style.display = 'none';
             iframe.src = 'https://hello-coder-xu.github.io/yinxu?region=1';
@@ -46,24 +46,17 @@
                 if (new Date().getTime() - start > timeout) {
                     clearInterval(interval);
                     document.body.removeChild(iframe);
-                    callback(false);
+                    console.log('WhatsApp未安装');
                 }
             }, 100);
             window.addEventListener('blur', function () {
                 clearInterval(interval);
                 document.body.removeChild(iframe);
-                callback(true);
+                console.log('WhatsApp已安装');
             });
         }
 
-        // 使用示例
-        isAppInstalled(function (installed) {
-            if (installed) {
-                console.log('WhatsApp已安装');
-            } else {
-                console.log('WhatsApp未安装');
-            }
-        });
+
 
     </script>
 </body>
