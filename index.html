@@ -34,7 +34,32 @@
 <body>
     <button onclick="openApp()">打开app</button>
     <div id="loading" style="display: none;">
-        <img src="loading.gif" alt="">
+        <div style="display: flex; align-items: center; justify-content: center;">
+            <div
+                style="width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loading 1s ease-in-out infinite;">
+            </div>
+            <div
+                style="width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loading 1s ease-in-out infinite 0.1s;">
+            </div>
+            <div
+                style="width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loading 1s ease-in-out infinite 0.2s;">
+            </div>
+        </div>
+        <style>
+            @keyframes loading {
+                0% {
+                    transform: scale(1);
+                }
+
+                50% {
+                    transform: scale(1.2);
+                }
+
+                100% {
+                    transform: scale(1);
+                }
+            }
+        </style>
     </div>
 
     <script>
