@@ -38,31 +38,6 @@
                 }
             }, 2000)
         }
-
-
-        function isAppInstalled() {
-            var iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = 'https://hello-coder-xu.github.io/yinxu?region=1';
-            document.body.appendChild(iframe);
-            var start = new Date().getTime();
-            var timeout = 2000; // 2秒超时
-            var interval = setInterval(function () {
-                if (new Date().getTime() - start > timeout) {
-                    clearInterval(interval);
-                    document.body.removeChild(iframe);
-                    console.log('WhatsApp未安装');
-                }
-            }, 100);
-            window.addEventListener('blur', function () {
-                clearInterval(interval);
-                document.body.removeChild(iframe);
-                console.log('WhatsApp已安装');
-            });
-        }
-
-
-
     </script>
 </body>
 
