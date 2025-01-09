@@ -16,10 +16,9 @@
 
 
 <body>
-    <button onclick="openApp()">打开app1</button>
+    <button onclick="isAppInstalled()">打开app2</button>
     <script>
         function openApp() {
-            alert('hello world');
             // todo: 你的其他逻辑
             window.location.href = 'https://hello-coder-xu.github.io/yinxu';
             console.log('打开App 点击事件')
@@ -34,6 +33,38 @@
             //     }
             // }, 2000)
         }
+
+
+        function isAppInstalled(callback) {
+            var iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = 'https://hello-coder-xu.github.io/yinxu?region=1';
+            document.body.appendChild(iframe);
+            var start = new Date().getTime();
+            var timeout = 2000; // 2秒超时
+            var interval = setInterval(function () {
+                if (new Date().getTime() - start > timeout) {
+                    clearInterval(interval);
+                    document.body.removeChild(iframe);
+                    callback(false);
+                }
+            }, 100);
+            window.addEventListener('blur', function () {
+                clearInterval(interval);
+                document.body.removeChild(iframe);
+                callback(true);
+            });
+        }
+
+        // 使用示例
+        isAppInstalled(function (installed) {
+            if (installed) {
+                console.log('WhatsApp已安装');
+            } else {
+                console.log('WhatsApp未安装');
+            }
+        });
+
     </script>
 </body>
 
