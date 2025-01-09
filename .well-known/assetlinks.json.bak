@@ -1,0 +1,9 @@
+ [{
+   "relation": ["delegate_permission/common.handle_all_urls"],
+   "target": {
+     "namespace": "android_app",
+     "package_name": "com.addcn.android.house591",
+     "sha256_cert_fingerprints":
+     ["DF:5A:54:75:90:9C:23:3C:E7:01:E9:09:24:9D:DF:7B:01:80:37:9A:AA:69:44:CF:FD:CA:AB:B8:4B:1A:67:A6"]
+   }
+ }]
