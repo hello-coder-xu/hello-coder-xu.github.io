@@ -14,14 +14,14 @@
     </style>
 </head>
 <script>
-    const alertMessage = (message) => alert(message);
     const btnClick = (e) => {
-        alertMessage('hello world')
+        alert('click');
     }
 
 
     const openApp = (e) => {
-        window.location.href = 'twaddcn://'
+        window.location.href = 'https://hello-coder-xu.github.io'
+        console.log('打开App 点击事件')
         setTimeout(() => {
             // 如果成功打开了应用，则说明应用已安装
             if (document.hidden || document.webkitHidden) {
@@ -39,7 +39,7 @@
 <body>
     <button id="btn" @click="btnClick">click me</button>
 
-    <a @click="openApp">打开App</a>
+    <button @click="openApp">打开App1</button>
 </body>
 
 </html>
