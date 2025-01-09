@@ -1,18 +1,47 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" dir="ltr">
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>test</title>
+    <style>
+        #btn {
+            display: block;
+            margin: 0 auto;
+            font-size: 24px;
+        }
+    </style>
 </head>
+<script>
+    const alertMessage = (message) => alert(message);
+
+    const btn = document.getElementById('btn');
+    btn.addEventListener('click', () => alertMessage('hello world'));
+
+
+    const openApp = (e) => {
+        window.location.href = 'twaddcn://'
+        setTimeout(() => {
+            // 如果成功打开了应用，则说明应用已安装
+            if (document.hidden || document.webkitHidden) {
+                // 应用已安装
+                window.close()
+            } else {
+                // 应用未安装
+
+            }
+        }, 2000)
+    }
+</script>
+
 
 <body>
     <button id="btn">click me</button>
-    <script>
-        document.getElementById('btn').addEventListener('click', function () {
-            alert('hello world');
-        })
-    </script>
+
+
+
+    <a href="twaddcn://" @click="openApp">打开App</a>
 </body>
 
 </html>
