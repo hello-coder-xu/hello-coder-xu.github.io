@@ -100,6 +100,7 @@
             var appStore = ua.indexOf('android') > -1 ? googlePlayLink : appStoreLink;
             // 设置定时器
             let timer = setTimeout(function () {
+                console.log('openApp2 appLink=' + appLink + ' href=' + window.location.href);
                 // 检查当前页面的URL是否为目标URL
                 if (window.location.href === appLink) {
                     console.log('openApp2 页面打开成功');
@@ -130,6 +131,7 @@
                 // 可以在这里执行一些页面加载失败后的操作
                 window.close();
             };
+            window.location.href = appLink;
         }
     </script>
 
