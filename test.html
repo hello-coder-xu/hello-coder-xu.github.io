@@ -101,10 +101,10 @@
             // 设置定时器
             let timer = setTimeout(function () {
                 // 检查当前页面的URL是否为目标URL
-                if (window.location.href === targetUrl) {
+                if (window.location.href === appLink) {
                     console.log('页面打开成功');
                     // 尝试打开app
-                    window.location.href = appLink;
+                    window.location.href = appStore;
                 } else {
                     console.log('页面打开失败');
                     window.close();
@@ -122,7 +122,7 @@
             window.onload = function () {
                 console.log('页面加载成功');
                 // 可以在这里执行一些页面加载成功后的操作
-                window.location.href = appLink;
+                window.location.href = appStore;
             };
 
             window.onerror = function () {
