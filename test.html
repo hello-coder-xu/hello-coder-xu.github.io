@@ -37,34 +37,6 @@
         <button onclick="openApp2()" style="margin: 5px 0;">测试按钮2</button>
         <button onclick="openApp3()" style="margin: 5px 0;">测试按钮3</button>
     </div>
-    <div id="loading" style="display: none;">
-        <div style="display: flex; align-items: center; justify-content: center;">
-            <div
-                style="width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loading 1s ease-in-out infinite;">
-            </div>
-            <div
-                style="width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loading 1s ease-in-out infinite 0.1s;">
-            </div>
-            <div
-                style="width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loading 1s ease-in-out infinite 0.2s;">
-            </div>
-        </div>
-        <style>
-            @keyframes loading {
-                0% {
-                    transform: scale(1);
-                }
-
-                50% {
-                    transform: scale(1.2);
-                }
-
-                100% {
-                    transform: scale(1);
-                }
-            }
-        </style>
-    </div>
 
     <script>
         function openApp1() {
@@ -112,7 +84,7 @@
                     window.location.href = appStore;
                 } else {
                     console.log('openApp2 页面打开失败');
-                    window.close();
+                    window.location.href = appStore;
                 }
             }, 2000); // 3秒后判断
             // 尝试打开app
