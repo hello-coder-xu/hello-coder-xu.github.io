@@ -64,7 +64,6 @@
 
     <script>
         function openApp() {
-            document.getElementById('loading').style.display = 'block';
             // todo: 你的其他逻辑
             window.location.href = 'https://hello-coder-xu.github.io/yinxu?region=cn';
             console.log('打开App 点击事件')
@@ -73,7 +72,8 @@
                 if (document.hidden || document.webkitHidden) {
                     console.log('打开App 000')
                     // 应用已安装
-                    document.getElementById('loading').style.display = 'none';
+                    // 应用已安装
+                    window.close()
                 } else {
                     console.log('打开App 111')
                     // 应用未安装
@@ -83,7 +83,6 @@
                     } else if (ua.indexOf('iphone') > -1 || ua.indexOf('ipad') > -1) {
                         window.location.href = 'https://itunes.apple.com/cn/app/id448156496?mt=8';
                     }
-                    document.getElementById('loading').style.display = 'none';
                 }
             }, 2000)
         }
