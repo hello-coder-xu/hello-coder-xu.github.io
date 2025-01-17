@@ -24,8 +24,10 @@
 <body>
     <div id="random-number"></div>
     <script>
+        const urlParams = new URLSearchParams(window.location.search);
         const randomNumberElement = document.getElementById('random-number');
-        const randomNumber = Math.floor(Math.random() * 100);
-        randomNumberElement.textContent = randomNumber;
+        for (const [key, value] of urlParams.entries()) {
+            randomNumberElement.textContent += `${key}: ${value}\n`;
+        }
     </script>
 </body>
