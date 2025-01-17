@@ -64,33 +64,19 @@
 
     <script>
         function openApp() {
-            // var appLink = "https://hello-coder-xu.github.io/yinxu?region=cn";
-            // var appStoreLink = "https://itunes.apple.com/cn/app/id448156496?mt=8";
+            var appLink = "https://hello-coder-xu.github.io/yinxu?region=cn";
+            var appStoreLink = "https://itunes.apple.com/cn/app/id448156496?mt=8";
             var googlePlayLink = "https://play.google.com/store/apps/details?id=com.addcn.android.house591";
 
-            // var ua = navigator.userAgent.toLowerCase();
-            // var appStore = ua.indexOf('android') > -1 ? googlePlayLink : appStoreLink;
-            // var iframe = document.createElement("iframe");
-            // iframe.style.display = "none";
-            // iframe.src = appLink;
-            // document.body.appendChild(iframe);
-
-            // setTimeout(function () {
-            //     // if (iframe.contentWindow.location.href === appLink) {
-            //     //     window.location.href = appStore;
-            //     // }
-            // }, 2000);
-
-
-            // 设置applink
-            let appLink = "https://hello-coder-xu.github.io/yinxu?region=cn";
+            var ua = navigator.userAgent.toLowerCase();
+            var appStore = ua.indexOf('android') > -1 ? googlePlayLink : appStoreLink;
             // 设置定时器
             let timer = setTimeout(function () {
                 // 如果页面仍然可见，说明app未成功打开，跳转到下载链接
                 if (document.visibilityState === 'visible') {
-                    window.location.href = googlePlayLink;
+                    window.location.href = appStore;
                 }
-            }, 3000); // 3秒后判断
+            }, 2000); // 3秒后判断
 
             // 监听页面可见性变化事件
             document.addEventListener('visibilitychange', function () {
