@@ -102,11 +102,11 @@
             let timer = setTimeout(function () {
                 // 检查当前页面的URL是否为目标URL
                 if (window.location.href === appLink) {
-                    console.log('页面打开成功');
+                    console.log('openApp2 页面打开成功');
                     // 尝试打开app
                     window.location.href = appStore;
                 } else {
-                    console.log('页面打开失败');
+                    console.log('openApp2 页面打开失败');
                     window.close();
                 }
             }, 2000); // 3秒后判断
@@ -120,13 +120,13 @@
             var ua = navigator.userAgent.toLowerCase();
             var appStore = ua.indexOf('android') > -1 ? googlePlayLink : appStoreLink;
             window.onload = function () {
-                console.log('页面加载成功');
+                console.log('openApp3页面加载成功');
                 // 可以在这里执行一些页面加载成功后的操作
                 window.location.href = appStore;
             };
 
             window.onerror = function () {
-                console.log('页面加载失败');
+                console.log('openApp3 页面加载失败');
                 // 可以在这里执行一些页面加载失败后的操作
                 window.close();
             };
