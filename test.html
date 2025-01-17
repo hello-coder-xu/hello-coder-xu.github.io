@@ -66,6 +66,7 @@
 
     <script>
         function openApp1() {
+            console.log('openApp1 点击');
             var appLink = "https://hello-coder-xu.github.io/yinxu?region=cn";
             var appStoreLink = "https://itunes.apple.com/cn/app/id448156496?mt=8";
             var googlePlayLink = "https://play.google.com/store/apps/details?id=com.addcn.android.house591";
@@ -92,6 +93,7 @@
         }
 
         function openApp2() {
+            console.log('openApp2 点击');
             var appLink = "https://hello-coder-xu.github.io/yinxu?region=cn";
             var appStoreLink = "https://itunes.apple.com/cn/app/id448156496?mt=8";
             var googlePlayLink = "https://play.google.com/store/apps/details?id=com.addcn.android.house591";
@@ -111,9 +113,12 @@
                     window.close();
                 }
             }, 2000); // 3秒后判断
+            // 尝试打开app
+            window.location.href = appLink;
         }
 
         function openApp3() {
+            console.log('openApp3 点击');
             var appLink = "https://hello-coder-xu.github.io/yinxu?region=cn";
             var appStoreLink = "https://itunes.apple.com/cn/app/id448156496?mt=8";
             var googlePlayLink = "https://play.google.com/store/apps/details?id=com.addcn.android.house591";
@@ -121,7 +126,7 @@
             var ua = navigator.userAgent.toLowerCase();
             var appStore = ua.indexOf('android') > -1 ? googlePlayLink : appStoreLink;
             window.onload = function () {
-                console.log('openApp3页面加载成功');
+                console.log('openApp3 页面加载成功');
                 // 可以在这里执行一些页面加载成功后的操作
                 window.location.href = appStore;
             };
