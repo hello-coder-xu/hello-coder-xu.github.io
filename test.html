@@ -32,7 +32,9 @@
 </head>
 
 <body>
-    <button onclick="openApp()">测试按钮</button>
+    <button onclick="openApp1()">测试按钮1</button>
+    <button onclick="openApp2()">测试按钮2</button>
+    <button onclick="openApp3()">测试按钮3</button>
     <div id="loading" style="display: none;">
         <div style="display: flex; align-items: center; justify-content: center;">
             <div
@@ -63,7 +65,7 @@
     </div>
 
     <script>
-        function openApp() {
+        function openApp1() {
             var appLink = "https://hello-coder-xu.github.io/yinxu?region=cn";
             var appStoreLink = "https://itunes.apple.com/cn/app/id448156496?mt=8";
             var googlePlayLink = "https://play.google.com/store/apps/details?id=com.addcn.android.house591";
@@ -85,9 +87,49 @@
                     clearTimeout(timer);
                 }
             });
-
             // 尝试打开app
             window.location.href = appLink;
+        }
+
+        function openApp2() {
+            var appLink = "https://hello-coder-xu.github.io/yinxu?region=cn";
+            var appStoreLink = "https://itunes.apple.com/cn/app/id448156496?mt=8";
+            var googlePlayLink = "https://play.google.com/store/apps/details?id=com.addcn.android.house591";
+
+            var ua = navigator.userAgent.toLowerCase();
+            var appStore = ua.indexOf('android') > -1 ? googlePlayLink : appStoreLink;
+            // 设置定时器
+            let timer = setTimeout(function () {
+                // 检查当前页面的URL是否为目标URL
+                if (window.location.href === targetUrl) {
+                    console.log('页面打开成功');
+                    // 尝试打开app
+                    window.location.href = appLink;
+                } else {
+                    console.log('页面打开失败');
+                    window.close();
+                }
+            }, 2000); // 3秒后判断
+        }
+
+        function openApp3() {
+            var appLink = "https://hello-coder-xu.github.io/yinxu?region=cn";
+            var appStoreLink = "https://itunes.apple.com/cn/app/id448156496?mt=8";
+            var googlePlayLink = "https://play.google.com/store/apps/details?id=com.addcn.android.house591";
+
+            var ua = navigator.userAgent.toLowerCase();
+            var appStore = ua.indexOf('android') > -1 ? googlePlayLink : appStoreLink;
+            window.onload = function () {
+                console.log('页面加载成功');
+                // 可以在这里执行一些页面加载成功后的操作
+                window.location.href = appLink;
+            };
+
+            window.onerror = function () {
+                console.log('页面加载失败');
+                // 可以在这里执行一些页面加载失败后的操作
+                window.close();
+            };
         }
     </script>
 
