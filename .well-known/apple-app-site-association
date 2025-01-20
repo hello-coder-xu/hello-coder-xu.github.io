@@ -5,6 +5,7 @@
             {
                 "appID": "2RA5LSHPUJ.com.example.flutterApplinkDemo",
                 "paths": [
+                    "*",
                     "/yinxu/*"
                 ]
             }
