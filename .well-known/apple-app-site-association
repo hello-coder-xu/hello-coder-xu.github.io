@@ -1,0 +1,13 @@
+{
+    "applinks": {
+        "apps": [],
+        "details": [
+            {
+                "appID": "Addcn Technology Co., Ltd.com.example.flutterApplinkDemo",
+                "paths": [
+                    "/yinxu/*"
+                ]
+            }
+        ]
+    }
+}
