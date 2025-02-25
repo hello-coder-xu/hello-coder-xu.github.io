@@ -1,46 +1,68 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>test</title>
+    <title>591房屋应用启动</title>
     <style>
-        #btn {
+        #appLauncher {
             display: block;
-            margin: 0 auto;
-            font-size: 24px;
+            margin: 2rem auto;
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        #appLauncher:hover {
+            opacity: 0.9;
         }
     </style>
 </head>
 
 <body>
-    <button onclick="openApp()">打开app</button>
-    <script>
-        function openApp() {
-            // todo: 你的其他逻辑
-            window.location.href = 'https://link.591.com.tw/yinxu?region=cn';
-            console.log('打开App 点击事件')
-            setTimeout(() => {
-                // 如果成功打开了应用，则说明应用已安装
-                if (document.hidden || document.webkitHidden) {
-                    console.log('打开App 000')
-                    // 应用已安装
-                    window.close()
-                } else {
-                    console.log('打开App 111')
-                    // 应用未安装
-                    var ua = navigator.userAgent.toLowerCase();
-                    if (ua.indexOf('android') > -1) {
-                        window.location.href = 'https://play.google.com/store/apps/details?id=com.addcn.android.house591';
-                    } else if (ua.indexOf('iphone') > -1 || ua.indexOf('ipad') > -1) {
-                        window.location.href = 'https://itunes.apple.com/cn/app/id448156496?mt=8';
-                    }
-                }
-            }, 2000)
-        }
-    </script>
+    <button id="appLauncher" onclick="openApp()">立即打开APP</button>
 
+    <script>
+        const APP_LINKS = {
+            deepLink: 'https://link.591.com.tw/yinxu?region=cn',
+            android: 'https://play.google.com/store/apps/details?id=com.addcn.android.house591',
+            ios: 'https://itunes.apple.com/cn/app/id448156496?mt=8'
+        };
+
+        const detectPlatform = () => {
+            const ua = navigator.userAgent.toLowerCase();
+            return {
+                isAndroid: /android/.test(ua),
+                isIOS: /iphone|ipad/.test(ua)
+            };
+        };
+
+        const checkAppInstalled = () => document.hidden || document.webkitHidden;
+
+        const redirectToStore = () => {
+            const { isAndroid, isIOS } = detectPlatform();
+            isAndroid ? window.location.assign(APP_LINKS.android)
+                : isIOS && (window.location.href = APP_LINKS.ios);
+        };
+
+        const openApp = () => {
+            window.location.href = APP_LINKS.deepLink;
+            setTimeout(() => {
+                checkAppInstalled() ? window.close() : redirectToStore();
+            }, 2000);
+        };
+
+        // 预加载应用商店链接
+        window.addEventListener('load', () => {
+            [APP_LINKS.android, APP_LINKS.ios].forEach(url => new Image().src = url);
+        });
+    </script>
 </body>
 
 </html>
