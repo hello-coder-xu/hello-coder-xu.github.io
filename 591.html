@@ -52,10 +52,28 @@
         };
 
         const openApp = () => {
+            let handled = false;
+
+            // 优先使用 visibilitychange 事件监听
+            const visibilityHandler = () => {
+                if (document.hidden) {
+                    handled = true;
+                    window.close(); // 立即关闭
+                    document.removeEventListener('visibilitychange', visibilityHandler);
+                }
+            };
+
+            document.addEventListener('visibilitychange', visibilityHandler);
+
             window.location.href = APP_LINKS.deepLink;
+
+            // 仅作为备选方案
             setTimeout(() => {
-                checkAppInstalled() ? window.close() : redirectToStore();
-            }, 2000);
+                if (!handled) {
+                    document.removeEventListener('visibilitychange', visibilityHandler);
+                    redirectToStore();
+                }
+            }, 1000); // 缩短超时时间
         };
 
         // 预加载应用商店链接
