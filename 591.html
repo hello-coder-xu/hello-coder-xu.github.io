@@ -22,18 +22,34 @@
         #appLauncher:hover {
             opacity: 0.9;
         }
+
+        /* 新增链接显示样式 */
+        .deeplink-info {
+            text-align: center;
+            margin: 1rem auto;
+            max-width: 80%;
+            word-break: break-all;
+            color: #666;
+        }
     </style>
 </head>
 
 <body>
     <button id="appLauncher" onclick="openApp()">立即打开APP</button>
+    <!-- 新增链接显示区域 -->
+    <p class="deeplink-info" id="deeplinkDisplay"></p>
 
     <script>
+        // 提取 deeplink 为独立常量
+        const DEEP_LINK = 'https://link.591.com.tw/?link=https://m.591.com.tw/v2/rent/16834698';
+
         const APP_LINKS = {
-            deepLink: 'https://link.591.com.tw/?link=cn',
             android: 'https://play.google.com/store/apps/details?id=com.addcn.android.house591',
             ios: 'https://itunes.apple.com/cn/app/id448156496?mt=8'
         };
+
+        // 初始化显示 deeplink
+        document.getElementById('deeplinkDisplay').textContent = `当前深度链接: ${DEEP_LINK}`;
 
         const detectPlatform = () => {
             const ua = navigator.userAgent.toLowerCase();
@@ -43,8 +59,6 @@
             };
         };
 
-        const checkAppInstalled = () => document.hidden || document.webkitHidden;
-
         const redirectToStore = () => {
             const { isAndroid, isIOS } = detectPlatform();
             isAndroid ? window.location.assign(APP_LINKS.android)
@@ -53,30 +67,26 @@
 
         const openApp = () => {
             let handled = false;
-
-            // 优先使用 visibilitychange 事件监听
             const visibilityHandler = () => {
                 if (document.hidden) {
                     handled = true;
-                    window.close(); // 立即关闭
+                    window.close();
                     document.removeEventListener('visibilitychange', visibilityHandler);
                 }
             };
-
             document.addEventListener('visibilitychange', visibilityHandler);
 
-            window.location.href = APP_LINKS.deepLink;
+            // 使用独立常量
+            window.location.href = DEEP_LINK;
 
-            // 仅作为备选方案
             setTimeout(() => {
                 if (!handled) {
                     document.removeEventListener('visibilitychange', visibilityHandler);
                     redirectToStore();
                 }
-            }, 1000); // 缩短超时时间
+            }, 1000);
         };
 
-        // 预加载应用商店链接
         window.addEventListener('load', () => {
             [APP_LINKS.android, APP_LINKS.ios].forEach(url => new Image().src = url);
         });
