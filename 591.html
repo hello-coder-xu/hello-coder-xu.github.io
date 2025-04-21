@@ -13,31 +13,18 @@
             text-align: center;
         }
 
-        .deeplink-info {
-            margin: 1rem auto;
-            padding: 10px;
-            background: #f5f5f5;
-            border-radius: 8px;
-            word-break: break-all;
+        .tip-text {
+            margin: 20px 0;
             color: #666;
         }
 
-        .app-button {
-            display: inline-block;
-            margin: 20px 10px;
-            padding: 12px 24px;
-            background: #007bff;
-            color: white;
+        .store-link {
+            color: #007bff;
             text-decoration: none;
-            border-radius: 5px;
-            transition: opacity 0.3s;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
         }
 
-        .app-button:hover {
-            opacity: 0.9;
+        .store-link:hover {
+            text-decoration: underline;
         }
 
         #logContainer {
@@ -61,39 +48,25 @@
             color: #666;
             margin-right: 10px;
         }
-
-        .link-status {
-            margin: 10px 0;
-            padding: 10px;
-            background: #e9ecef;
-            border-radius: 4px;
-            text-align: left;
-        }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <p class="deeplink-info" id="deeplinkDisplay"></p>
-        <button onclick="tryOpenApp()" class="app-button">打开APP(Scheme)</button>
-        <button onclick="goToStore()" class="app-button">前往应用商店</button>
-        <button onclick="openWithLocation()" class="app-button">直接打开链接</button>
-        <div class="link-status" id="linkStatus"></div>
+        <p class="tip-text">正在跳转到应用，如果未自动跳转，请<a href="javascript:redirectToStore()" class="store-link">点击这里</a></p>
         <div id="logContainer"></div>
     </div>
 
     <script>
         // 配置信息
         const CONFIG = {
-            href: 'https://m.591.com.tw/v2/rent/16834698',
-            deeplink: 'https://link.591.com.tw/?link=https://m.591.com.tw/v2/rent/16834698',
-            appScheme: 'tw591://open?url=https%3A%2F%2Fm.591.com.tw%2Fv2%2Frent%2F16834698',
+            appScheme: 'tw591://open?url=https://m.591.com.tw/v2/rent/16834698',
             appLinks: {
-                android: 'https://play.google.com/store/apps/details?id=com.addcn.android.house591',
+                android: 'market://details?id=com.addcn.android.house591',
                 ios: 'itms-apps://itunes.apple.com/cn/app/id448156496',
                 web: 'https://m.591.com.tw/v2/rent/16834698'
             },
-            timeout: 1000
+            timeout: 500
         };
 
         // 日志记录函数
@@ -107,53 +80,23 @@
             logContainer.scrollTop = logContainer.scrollHeight;
         }
 
-        // 更新链接状态显示
-        function updateLinkStatus(type, url) {
-            const statusDiv = document.getElementById('linkStatus');
-            const time = new Date().toLocaleTimeString();
-            statusDiv.innerHTML += `
-                <div>[${time}] 尝试打开: ${type}</div>
-                <div style="word-break: break-all; margin-left: 10px; color: #666;">
-                    ${url}
-                </div>
-            `;
-            statusDiv.scrollTop = statusDiv.scrollHeight;
-        }
-
-        // 使用 location.href 直接打开链接
-        function openWithLocation() {
-            const url = CONFIG.deeplink;
-            log('使用 location.href 打开链接');
-            updateLinkStatus('DeepLink', url);
-            window.location.href = url;
-        }
-
-        // 检测平台
-        function detectPlatform() {
-            const ua = navigator.userAgent.toLowerCase();
-            return {
-                isAndroid: /android/.test(ua),
-                isIOS: /iphone|ipad/.test(ua)
-            };
-        }
-
         // 跳转到应用商店
-        function goToStore() {
-            const { isAndroid, isIOS } = detectPlatform();
-            let storeUrl = CONFIG.appLinks.web;
+        function redirectToStore() {
+            const isAndroid = /android/i.test(navigator.userAgent);
+            const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
+            let storeUrl = CONFIG.appLinks.web;
             if (isAndroid) {
                 storeUrl = CONFIG.appLinks.android;
-            } else if (isIOS) {
+            } else if (isiOS) {
                 storeUrl = CONFIG.appLinks.ios;
             }
 
-            log(`准备跳转到应用商店: ${storeUrl}`);
-            updateLinkStatus('应用商店', storeUrl);
+            log(`准备跳转到: ${storeUrl}`);
             window.location.href = storeUrl;
         }
 
-        // 尝试通过iframe静默打开应用
+        // 尝试通过 iframe 静默打开应用
         function tryOpenApp() {
             log('开始尝试唤起应用');
 
@@ -162,22 +105,19 @@
             iframe.src = CONFIG.appScheme;
             document.body.appendChild(iframe);
 
-            log(`同时尝试 scheme 方式: ${CONFIG.appScheme}`);
-            updateLinkStatus('Scheme', CONFIG.appScheme);
+            log(`尝试打开应用: ${CONFIG.appScheme}`);
 
-            // 设置超时检查
             setTimeout(() => {
-                document.removeEventListener('visibilitychange', visibilityHandler);
                 document.body.removeChild(iframe);
                 log('应用唤起超时，准备跳转到应用商店');
-                goToStore();
+                redirectToStore();
             }, CONFIG.timeout);
         }
 
-        // 页面加载完成后初始化
+        // 页面加载完成后自动尝试打开应用
         window.addEventListener('load', () => {
-            document.getElementById('deeplinkDisplay').textContent = `当前深度链接: ${CONFIG.deeplink}`;
-            log('页面初始化完成');
+            log('页面加载完成，自动尝试打开应用');
+            tryOpenApp();
         });
     </script>
 </body>
