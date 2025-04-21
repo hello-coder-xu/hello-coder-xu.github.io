@@ -61,20 +61,31 @@
             color: #666;
             margin-right: 10px;
         }
+
+        .link-status {
+            margin: 10px 0;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 4px;
+            text-align: left;
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
         <p class="deeplink-info" id="deeplinkDisplay"></p>
-        <button onclick="tryOpenApp()" class="app-button">打开APP</button>
+        <button onclick="tryOpenApp()" class="app-button">打开APP(Scheme)</button>
         <button onclick="goToStore()" class="app-button">前往应用商店</button>
+        <button onclick="openWithLocation()" class="app-button">直接打开链接</button>
+        <div class="link-status" id="linkStatus"></div>
         <div id="logContainer"></div>
     </div>
 
     <script>
         // 配置信息
         const CONFIG = {
+            href: 'https://m.591.com.tw/v2/rent/16834698',
             deeplink: 'https://link.591.com.tw/?link=https://m.591.com.tw/v2/rent/16834698',
             appScheme: 'tw591://rent/16834698',
             appLinks: {
@@ -94,6 +105,27 @@
             logEntry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
             logContainer.appendChild(logEntry);
             logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // 更新链接状态显示
+        function updateLinkStatus(type, url) {
+            const statusDiv = document.getElementById('linkStatus');
+            const time = new Date().toLocaleTimeString();
+            statusDiv.innerHTML += `
+                <div>[${time}] 尝试打开: ${type}</div>
+                <div style="word-break: break-all; margin-left: 10px; color: #666;">
+                    ${url}
+                </div>
+            `;
+            statusDiv.scrollTop = statusDiv.scrollHeight;
+        }
+
+        // 使用 location.href 直接打开链接
+        function openWithLocation() {
+            const url = CONFIG.deeplink;
+            log('使用 location.href 打开链接');
+            updateLinkStatus('DeepLink', url);
+            window.location.href = url;
         }
 
         // 检测平台
@@ -117,6 +149,7 @@
             }
 
             log(`准备跳转到应用商店: ${storeUrl}`);
+            updateLinkStatus('应用商店', storeUrl);
             window.location.href = storeUrl;
         }
 
@@ -130,6 +163,7 @@
             document.body.appendChild(iframe);
 
             log(`同时尝试 scheme 方式: ${CONFIG.appScheme}`);
+            updateLinkStatus('Scheme', CONFIG.appScheme);
 
             // 设置超时检查
             setTimeout(() => {
@@ -140,10 +174,10 @@
             }, CONFIG.timeout);
         }
 
-        // 页面加载完成后只显示深度链接
+        // 页面加载完成后初始化
         window.addEventListener('load', () => {
             document.getElementById('deeplinkDisplay').textContent = `当前深度链接: ${CONFIG.deeplink}`;
-            log('页面加载完成，等待用户操作');
+            log('页面初始化完成');
         });
     </script>
 </body>
