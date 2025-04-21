@@ -6,16 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>591房屋应用启动</title>
     <style>
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            text-align: center;
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
         .tip-text {
-            margin: 20px 0;
+            text-align: center;
             color: #666;
+            font-size: 16px;
+            line-height: 1.5;
         }
 
         .store-link {
@@ -26,99 +30,51 @@
         .store-link:hover {
             text-decoration: underline;
         }
-
-        #logContainer {
-            margin: 20px auto;
-            padding: 15px;
-            background: #f5f5f5;
-            border-radius: 8px;
-            font-family: monospace;
-            text-align: left;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .log-entry {
-            margin: 5px 0;
-            padding: 5px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .log-time {
-            color: #666;
-            margin-right: 10px;
-        }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <p class="tip-text">正在跳转到应用，如果未自动跳转，请<a href="javascript:redirectToStore()" class="store-link">点击这里</a></p>
-        <div id="logContainer"></div>
-    </div>
+    <p class="tip-text">
+        正在打开应用...<br>
+        如果未自动打开，请<a href="javascript:openStore()" class="store-link">点击这里</a>下载
+    </p>
 
     <script>
-        // 配置信息
-        const CONFIG = {
-            appScheme: 'tw591://open?url=https://m.591.com.tw/v2/rent/16834698',
-            appLinks: {
-                android: 'market://details?id=com.addcn.android.house591',
-                ios: 'itms-apps://itunes.apple.com/cn/app/id448156496',
-                web: 'https://m.591.com.tw/v2/rent/16834698'
-            },
-            timeout: 500
+        const APP_CONFIG = {
+            scheme: 'tw591://open?url=https%3A%2F%2Fm.591.com.tw%2Fv2%2Frent%2F16834698',
+            android: 'market://details?id=com.addcn.android.house591',
+            ios: 'itms-apps://itunes.apple.com/cn/app/id448156496',
+            fallback: 'https://m.591.com.tw/v2/rent/16834698'
         };
 
-        // 日志记录函数
-        function log(message) {
-            const logContainer = document.getElementById('logContainer');
-            const logEntry = document.createElement('div');
-            logEntry.className = 'log-entry';
-            const time = new Date().toLocaleTimeString();
-            logEntry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
-            logContainer.appendChild(logEntry);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
-
-        // 跳转到应用商店
-        function redirectToStore() {
+        function openStore() {
             const isAndroid = /android/i.test(navigator.userAgent);
-            const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+            const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
-            let storeUrl = CONFIG.appLinks.web;
+            let storeUrl = APP_CONFIG.fallback;
             if (isAndroid) {
-                storeUrl = CONFIG.appLinks.android;
-            } else if (isiOS) {
-                storeUrl = CONFIG.appLinks.ios;
+                storeUrl = APP_CONFIG.android;
+            } else if (isIOS) {
+                storeUrl = APP_CONFIG.ios;
             }
 
-            log(`准备跳转到: ${storeUrl}`);
             window.location.href = storeUrl;
         }
 
-        // 尝试通过 iframe 静默打开应用
-        function tryOpenApp() {
-            log('开始尝试唤起应用');
-
+        function openApp() {
             const iframe = document.createElement('iframe');
             iframe.style.display = 'none';
-            iframe.src = CONFIG.appScheme;
+            iframe.src = APP_CONFIG.scheme;
             document.body.appendChild(iframe);
-
-            log(`尝试打开应用: ${CONFIG.appScheme}`);
 
             setTimeout(() => {
                 document.body.removeChild(iframe);
-                log('应用唤起超时，准备跳转到应用商店');
-                redirectToStore();
-            }, CONFIG.timeout);
+                openStore();
+            }, 500);
         }
 
         // 页面加载完成后自动尝试打开应用
-        window.addEventListener('load', () => {
-            log('页面加载完成，自动尝试打开应用');
-            tryOpenApp();
-        });
+        window.addEventListener('load', openApp);
     </script>
 </body>
 
