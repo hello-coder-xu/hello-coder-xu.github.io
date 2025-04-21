@@ -76,12 +76,13 @@
         // 配置信息
         const CONFIG = {
             deeplink: 'https://link.591.com.tw/?link=https://m.591.com.tw/v2/rent/16834698',
+            appScheme: 'tw591://rent/16834698',
             appLinks: {
                 android: 'https://play.google.com/store/apps/details?id=com.addcn.android.house591',
                 ios: 'itms-apps://itunes.apple.com/cn/app/id448156496',
                 web: 'https://m.591.com.tw/v2/rent/16834698'
             },
-            timeout: 3000
+            timeout: 1000
         };
 
         // 日志记录函数
@@ -116,49 +117,26 @@
             }
 
             log(`准备跳转到应用商店: ${storeUrl}`);
-            window.location.href = CONFIG.deeplink;
+            window.location.href = storeUrl;
         }
 
-        // 尝试打开应用
+        // 尝试通过iframe静默打开应用
         function tryOpenApp() {
             log('开始尝试唤起应用');
 
-            let hasApp = false;
-            let timer = null;
-
-            // 监听页面可见性变化
-            const visibilityHandler = () => {
-                if (document.hidden) {
-                    hasApp = true;
-                    log('检测到应用已打开');
-                    if (timer) {
-                        clearTimeout(timer);
-                        timer = null;
-                    }
-                }
-            };
-
-            // 添加页面可见性监听
-            document.addEventListener('visibilitychange', visibilityHandler);
-
-            // 创建并使用iframe
             const iframe = document.createElement('iframe');
             iframe.style.display = 'none';
-            iframe.src = CONFIG.deeplink;
+            iframe.src = CONFIG.appScheme;
             document.body.appendChild(iframe);
 
-            log(`尝试打开应用: ${CONFIG.deeplink}`);
+            log(`同时尝试 scheme 方式: ${CONFIG.appScheme}`);
 
             // 设置超时检查
-            timer = setTimeout(() => {
-                // 移除监听器和iframe
+            setTimeout(() => {
                 document.removeEventListener('visibilitychange', visibilityHandler);
                 document.body.removeChild(iframe);
-
-                if (!hasApp) {
-                    log('应用唤起超时，准备跳转到应用商店');
-                    goToStore();
-                }
+                log('应用唤起超时，准备跳转到应用商店');
+                goToStore();
             }, CONFIG.timeout);
         }
 
