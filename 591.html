@@ -22,18 +22,21 @@
             color: #666;
         }
 
-        .manual-link {
+        .app-button {
             display: inline-block;
-            margin-top: 20px;
-            padding: 10px 20px;
+            margin: 20px 10px;
+            padding: 12px 24px;
             background: #007bff;
             color: white;
             text-decoration: none;
             border-radius: 5px;
             transition: opacity 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
         }
 
-        .manual-link:hover {
+        .app-button:hover {
             opacity: 0.9;
         }
 
@@ -62,7 +65,8 @@
 <body>
     <div class="container">
         <p class="deeplink-info" id="deeplinkDisplay"></p>
-        <a href="javascript:redirectToStore()" class="manual-link">手动跳转到应用商店</a>
+        <button onclick="tryOpenApp()" class="app-button">打开APP</button>
+        <a href="javascript:redirectToStore()" class="app-button">前往应用商店</a>
         <div id="logContainer"></div>
     </div>
 
@@ -147,9 +151,6 @@
                 new Image().src = url;
                 log(`预加载链接: ${url}`);
             });
-
-            // 自动尝试打开应用
-            tryOpenApp();
         });
     </script>
 </body>
