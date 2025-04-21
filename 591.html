@@ -76,7 +76,7 @@
         // 配置信息
         const CONFIG = {
             deeplink: 'https://link.591.com.tw/?link=https://m.591.com.tw/v2/rent/16834698',
-            appScheme: 'house591://rent/16834698',
+            // appScheme: 'house591://rent/16834698',
             appLinks: {
                 // android: 'market://details?id=com.addcn.android.house591',
                 android: 'https://play.google.com/store/apps/details?id=com.addcn.android.house591',
@@ -127,10 +127,10 @@
 
             const iframe = document.createElement('iframe');
             iframe.style.display = 'none';
-            iframe.src = CONFIG.appScheme;
+            iframe.src = CONFIG.deeplink;
             document.body.appendChild(iframe);
 
-            log(`尝试打开应用: ${CONFIG.appScheme}`);
+            log(`尝试打开应用: ${CONFIG.deeplink}`);
 
             setTimeout(() => {
                 document.body.removeChild(iframe);
