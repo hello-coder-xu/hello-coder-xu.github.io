@@ -102,8 +102,7 @@
             const { isAndroid, isIOS } = detectPlatform();
             const storeUrl = isAndroid ? APP_LINKS.android : APP_LINKS.ios;
             log(`正在重定向到应用商店: ${storeUrl}`);
-            isAndroid ? window.location.assign(storeUrl)
-                : isIOS && (window.location.href = storeUrl);
+            window.location.href = storeUrl;
         };
 
         const openApp = () => {
@@ -114,7 +113,6 @@
                 if (document.hidden) {
                     handled = true;
                     log('检测到页面隐藏，应用可能已打开');
-                    window.close();
                     document.removeEventListener('visibilitychange', visibilityHandler);
                 }
             };
@@ -131,7 +129,7 @@
                     document.removeEventListener('visibilitychange', visibilityHandler);
                     redirectToStore();
                 }
-            }, 1000);
+            }, 2000);
         };
 
         window.addEventListener('load', () => {
