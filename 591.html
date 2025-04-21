@@ -31,6 +31,27 @@
             word-break: break-all;
             color: #666;
         }
+
+        /* 新增日志显示区域样式 */
+        #logContainer {
+            margin: 20px auto;
+            padding: 15px;
+            max-width: 80%;
+            background: #f5f5f5;
+            border-radius: 8px;
+            font-family: monospace;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .log-time {
+            color: #666;
+            margin-right: 10px;
+        }
     </style>
 </head>
 
@@ -38,6 +59,8 @@
     <button id="appLauncher" onclick="openApp()">立即打开APP</button>
     <!-- 新增链接显示区域 -->
     <p class="deeplink-info" id="deeplinkDisplay"></p>
+    <!-- 新增日志显示区域 -->
+    <div id="logContainer"></div>
 
     <script>
         // 提取 deeplink 为独立常量
@@ -50,39 +73,61 @@
             ios: 'https://itunes.apple.com/cn/app/id448156496?mt=8'
         };
 
+        // 日志记录函数
+        function log(message) {
+            const logContainer = document.getElementById('logContainer');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            const time = new Date().toLocaleTimeString();
+            logEntry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
         // 初始化显示 deeplink
         document.getElementById('deeplinkDisplay').textContent = `当前深度链接: ${DEEP_LINK}`;
+        log('页面初始化完成');
 
         const detectPlatform = () => {
             const ua = navigator.userAgent.toLowerCase();
-            return {
+            const platform = {
                 isAndroid: /android/.test(ua),
                 isIOS: /iphone|ipad/.test(ua)
             };
+            log(`检测平台: ${JSON.stringify(platform)}`);
+            return platform;
         };
 
         const redirectToStore = () => {
             const { isAndroid, isIOS } = detectPlatform();
-            isAndroid ? window.location.assign(APP_LINKS.android)
-                : isIOS && (window.location.href = APP_LINKS.ios);
+            const storeUrl = isAndroid ? APP_LINKS.android : APP_LINKS.ios;
+            log(`正在重定向到应用商店: ${storeUrl}`);
+            isAndroid ? window.location.assign(storeUrl)
+                : isIOS && (window.location.href = storeUrl);
         };
 
         const openApp = () => {
+            log('开始打开应用流程');
             let handled = false;
+
             const visibilityHandler = () => {
                 if (document.hidden) {
                     handled = true;
+                    log('检测到页面隐藏，应用可能已打开');
                     window.close();
                     document.removeEventListener('visibilitychange', visibilityHandler);
                 }
             };
-            document.addEventListener('visibilitychange', visibilityHandler);
 
-            // 使用独立常量
+            document.addEventListener('visibilitychange', visibilityHandler);
+            log('已添加页面可见性监听器');
+
+            log(`尝试打开深度链接: ${DEEP_LINK}`);
             window.location.href = DEEP_LINK;
 
             setTimeout(() => {
                 if (!handled) {
+                    log('深度链接打开失败，准备重定向到应用商店');
                     document.removeEventListener('visibilitychange', visibilityHandler);
                     redirectToStore();
                 }
@@ -90,7 +135,11 @@
         };
 
         window.addEventListener('load', () => {
-            [APP_LINKS.android, APP_LINKS.ios].forEach(url => new Image().src = url);
+            log('页面加载完成，预加载应用商店链接');
+            [APP_LINKS.android, APP_LINKS.ios].forEach(url => {
+                new Image().src = url;
+                log(`预加载商店链接: ${url}`);
+            });
         });
     </script>
 </body>
