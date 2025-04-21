@@ -6,40 +6,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>591房屋应用启动</title>
     <style>
-        #appLauncher {
-            display: block;
-            margin: 2rem auto;
-            padding: 12px 24px;
-            font-size: 1.2rem;
-            border-radius: 8px;
-            background: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: opacity 0.3s;
-        }
-
-        #appLauncher:hover {
-            opacity: 0.9;
-        }
-
-        /* 新增链接显示样式 */
-        .deeplink-info {
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
             text-align: center;
+        }
+
+        .deeplink-info {
             margin: 1rem auto;
-            max-width: 80%;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
             word-break: break-all;
             color: #666;
         }
 
-        /* 新增日志显示区域样式 */
+        .manual-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: opacity 0.3s;
+        }
+
+        .manual-link:hover {
+            opacity: 0.9;
+        }
+
         #logContainer {
             margin: 20px auto;
             padding: 15px;
-            max-width: 80%;
             background: #f5f5f5;
             border-radius: 8px;
             font-family: monospace;
+            text-align: left;
         }
 
         .log-entry {
@@ -56,21 +60,23 @@
 </head>
 
 <body>
-    <button id="appLauncher" onclick="openApp()">立即打开APP</button>
-    <!-- 新增链接显示区域 -->
-    <p class="deeplink-info" id="deeplinkDisplay"></p>
-    <!-- 新增日志显示区域 -->
-    <div id="logContainer"></div>
+    <div class="container">
+        <p class="deeplink-info" id="deeplinkDisplay"></p>
+        <a href="javascript:redirectToStore()" class="manual-link">手动跳转到应用商店</a>
+        <div id="logContainer"></div>
+    </div>
 
     <script>
         // 配置信息
         const CONFIG = {
             deeplink: 'https://link.591.com.tw/?link=https://m.591.com.tw/v2/rent/16834698',
+            appScheme: 'house591://rent/16834698', // 应用自定义scheme
             appLinks: {
-                android: 'https://play.google.com/store/apps/details?id=com.addcn.android.house591',
-                ios: 'https://itunes.apple.com/cn/app/id448156496?mt=8'
+                android: 'market://details?id=com.addcn.android.house591',
+                ios: 'itms-apps://itunes.apple.com/cn/app/id448156496',
+                web: 'https://m.591.com.tw/v2/rent/16834698'
             },
-            timeout: 2000 // 等待应用唤起的时间（毫秒）
+            timeout: 500 // 等待应用唤起的时间（毫秒）
         };
 
         // 日志记录函数
@@ -98,39 +104,35 @@
         // 跳转到应用商店
         function redirectToStore() {
             const { isAndroid, isIOS } = detectPlatform();
-            const storeUrl = isAndroid ? CONFIG.appLinks.android : CONFIG.appLinks.ios;
-            log(`准备跳转到应用商店: ${storeUrl}`);
+            let storeUrl = CONFIG.appLinks.web;
+
+            if (isAndroid) {
+                storeUrl = CONFIG.appLinks.android;
+            } else if (isIOS) {
+                storeUrl = CONFIG.appLinks.ios;
+            }
+
+            log(`准备跳转到: ${storeUrl}`);
             window.location.href = storeUrl;
         }
 
-        // 打开应用
-        function openApp() {
-            log('开始应用唤起流程');
-            let appOpened = false;
+        // 尝试通过iframe静默打开应用
+        function tryOpenApp() {
+            log('开始尝试通过iframe唤起应用');
 
-            // 监听页面可见性变化
-            const visibilityHandler = () => {
-                if (document.hidden) {
-                    appOpened = true;
-                    log('检测到页面隐藏，应用可能已成功唤起');
-                    document.removeEventListener('visibilitychange', visibilityHandler);
-                }
-            };
+            // 创建隐藏的iframe
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = CONFIG.appScheme;
+            document.body.appendChild(iframe);
 
-            document.addEventListener('visibilitychange', visibilityHandler);
-            log('已添加页面可见性监听器');
-
-            // 尝试打开深度链接
-            log(`尝试打开深度链接: ${CONFIG.deeplink}`);
-            window.location.href = CONFIG.deeplink;
+            log(`已创建iframe并设置scheme: ${CONFIG.appScheme}`);
 
             // 设置超时，如果应用未唤起则跳转到应用商店
             setTimeout(() => {
-                if (!appOpened) {
-                    log('深度链接唤起失败，准备跳转到应用商店');
-                    document.removeEventListener('visibilitychange', visibilityHandler);
-                    redirectToStore();
-                }
+                document.body.removeChild(iframe);
+                log('iframe移除完成，准备跳转到应用商店');
+                redirectToStore();
             }, CONFIG.timeout);
         }
 
@@ -143,8 +145,11 @@
             // 预加载应用商店链接
             Object.values(CONFIG.appLinks).forEach(url => {
                 new Image().src = url;
-                log(`预加载商店链接: ${url}`);
+                log(`预加载链接: ${url}`);
             });
+
+            // 自动尝试打开应用
+            tryOpenApp();
         });
     </script>
 </body>
