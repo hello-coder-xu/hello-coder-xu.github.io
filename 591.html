@@ -119,10 +119,29 @@
             window.location.href = storeUrl;
         }
 
-        // 尝试通过iframe静默打开应用
+        // 尝试打开应用
         function tryOpenApp() {
             log('开始尝试唤起应用');
 
+            let hasApp = false;
+            let timer = null;
+
+            // 监听页面可见性变化
+            const visibilityHandler = () => {
+                if (document.hidden) {
+                    hasApp = true;
+                    log('检测到应用已打开');
+                    if (timer) {
+                        clearTimeout(timer);
+                        timer = null;
+                    }
+                }
+            };
+
+            // 添加页面可见性监听
+            document.addEventListener('visibilitychange', visibilityHandler);
+
+            // 创建并使用iframe
             const iframe = document.createElement('iframe');
             iframe.style.display = 'none';
             iframe.src = CONFIG.deeplink;
@@ -130,10 +149,16 @@
 
             log(`尝试打开应用: ${CONFIG.deeplink}`);
 
-            setTimeout(() => {
+            // 设置超时检查
+            timer = setTimeout(() => {
+                // 移除监听器和iframe
+                document.removeEventListener('visibilitychange', visibilityHandler);
                 document.body.removeChild(iframe);
-                log('应用唤起超时，准备跳转到应用商店');
-                goToStore();
+
+                if (!hasApp) {
+                    log('应用唤起超时，准备跳转到应用商店');
+                    goToStore();
+                }
             }, CONFIG.timeout);
         }
 
