@@ -34,53 +34,65 @@
 </head>
 
 <body>
-
-    <p class="tip-text">
-        正在打开应用...<br>
-        如果未自动打开，请<a href="javascript:openStore()" class="store-link">点击这里</a>下载
-    </p>
-    <br>
-
     <p class="tip-text">当前版本：1.0.0</p>
     <br>
+
     <button onclick="openApp()" style="display:block;margin:20px auto;padding:10px 20px;font-size:16px;">打开应用</button>
 
     <script>
-        const APP_CONFIG = {
-            scheme: 'tw591://open?url=https%3A%2F%2Fm.591.com.tw%2Fv2%2Frent%2F16834698',
-            android: 'market://details?id=com.addcn.android.house591',
-            ios: 'https://link.591.com.tw/?action=tw591:///mine/house_manager?statusType=open&type=2',
-            fallback: 'https://m.591.com.tw/v2/rent/16834698'
-        };
+        const STORE_URLS = {
+            ios: 'https://www.591.com.tw/home/tools/app/ios', // 苹果商店
+            android: 'https://www.591.com.tw/home/tools/app/android?id=com.addcn.android.house591' // 安卓商店
+        }
 
-        function openStore() {
-            const isAndroid = /android/i.test(navigator.userAgent);
-            const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
-            let storeUrl = APP_CONFIG.fallback;
-            if (isAndroid) {
-                storeUrl = APP_CONFIG.android;
-            } else if (isIOS) {
-                storeUrl = APP_CONFIG.ios;
+        const platform = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())
+            ? 'ios'
+            : /android/.test(navigator.userAgent.toLowerCase())
+                ? 'android'
+                : 'other'
+
+
+        const link = new URLSearchParams(location.search).get('link') || ''
+
+
+        // 處理從商店回來后的app打開
+        const tryOpenApp = () => {
+            location.href = `https://link.591.com.tw/?link=${link}`
+        }
+
+
+        // 處理商店打開
+        const openStore = () => {
+            if (platform === 'other') {
+                // 如果不是移動設備，直接跳轉到link
+                location.href = link
+                return
+            }
+            location.href = STORE_URLS[platform]
+            setTimeout(() => {
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') {
+                        tryOpenApp()
+                    }
+                })
+            }, 1500)
+        }
+
+
+        // 觸屏端打開APP的方法
+        export const openApp = function (url) {
+            // 為了兼容舊版本打開app的連接，對商用租屋連接特殊處理，去除business/
+            let href = typeof url === 'string' ? url : window.location.href
+            if (href.includes('business/rent')) {
+                href = href.replace('business/rent', 'rent')
             }
 
-            window.location.href = storeUrl;
+
+            // 使用 window.location.href 打開連接
+            // window.location.href = `https://hello-coder-xu.github.io/?action=tw591:///mine/houseManager?statusType=open&type=2`
+            window.location.href = 'tw591:///mine/houseManager?statusType=open&type=2'
         }
-
-        function openApp() {
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = APP_CONFIG.scheme;
-            document.body.appendChild(iframe);
-
-            setTimeout(() => {
-                document.body.removeChild(iframe);
-                openStore();
-            }, 500);
-        }
-
-        // 页面加载完成后自动尝试打开应用
-        // window.addEventListener('load', openApp);
     </script>
 </body>
 
