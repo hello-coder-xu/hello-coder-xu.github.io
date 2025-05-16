@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>591房屋应用启动</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .tip-text {
+            text-align: center;
+            color: #666;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .store-link {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .store-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <p class="tip-text">
+        正在打开应用...<br>
+        如果未自动打开，请<a href="javascript:openStore()" class="store-link">点击这里</a>下载
+    </p>
+    <button onclick="openApp()" style="display:block;margin:20px auto;padding:10px 20px;font-size:16px;">打开应用</button>
+
+    <script>
+        const APP_CONFIG = {
+            scheme: 'tw591://open?url=https%3A%2F%2Fm.591.com.tw%2Fv2%2Frent%2F16834698',
+            android: 'market://details?id=com.addcn.android.house591',
+            ios: 'itms-apps://itunes.apple.com/cn/app/id448156496',
+            fallback: 'https://m.591.com.tw/v2/rent/16834698'
+        };
+
+        function openStore() {
+            const isAndroid = /android/i.test(navigator.userAgent);
+            const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+            let storeUrl = APP_CONFIG.fallback;
+            if (isAndroid) {
+                storeUrl = APP_CONFIG.android;
+            } else if (isIOS) {
+                storeUrl = APP_CONFIG.ios;
+            }
+
+            window.location.href = storeUrl;
+        }
+
+        function openApp() {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = APP_CONFIG.scheme;
+            document.body.appendChild(iframe);
+
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+                openStore();
+            }, 500);
+        }
+
+        // 页面加载完成后自动尝试打开应用
+        // window.addEventListener('load', openApp);
+    </script>
+</body>
+
+</html>
