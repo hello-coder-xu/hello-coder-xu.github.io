@@ -132,6 +132,53 @@
             font-size: 13px;
             color: #856404;
         }
+
+        .steps-container {
+            margin-top: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .steps-container h2 {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .step-item {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: white;
+            border-left: 3px solid #007bff;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #333;
+            word-break: break-all;
+        }
+
+        .step-item.error {
+            border-left-color: #dc3545;
+            background: #ffe6e6;
+        }
+
+        .step-item.success {
+            border-left-color: #28a745;
+            background: #e6ffe6;
+        }
+
+        .step-item.warning {
+            border-left-color: #ffc107;
+            background: #fffcd9;
+        }
+
+        .clear-steps {
+            margin-top: 10px;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
     </style>
 </head>
 
@@ -180,9 +227,35 @@
             • 方法2: 先跳转到应用商店，1.5秒后监听页面可见性，返回后尝试打开App<br>
             • 方法3: 直接执行统一打开逻辑（用于测试）
         </div>
+
+        <div class="steps-container">
+            <h2>执行步骤</h2>
+            <div id="stepsList"></div>
+            <button class="btn-secondary clear-steps" onclick="clearSteps()">清空步骤</button>
+        </div>
     </div>
 
     <script>
+        // 步骤记录功能
+        function logStep(message, type = 'info') {
+            const stepsList = document.getElementById('stepsList')
+            const stepDiv = document.createElement('div')
+            const timestamp = new Date().toLocaleTimeString()
+
+            stepDiv.className = `step-item ${type}`
+            stepDiv.textContent = `[${timestamp}] ${message}`
+
+            stepsList.appendChild(stepDiv)
+            stepsList.scrollTop = stepsList.scrollHeight
+
+            // 同时输出到控制台
+            console.log(message)
+        }
+
+        function clearSteps() {
+            document.getElementById('stepsList').innerHTML = ''
+        }
+
         // 商店链接配置
         const STORE_URLS = {
             ios: 'https://www.591.com.tw/home/tools/app/ios',
@@ -201,27 +274,31 @@
         document.getElementById('userAgent').textContent = navigator.userAgent
         document.getElementById('currentUrl').textContent = window.location.href
 
+        // 页面加载时记录环境信息
+        logStep('页面加载完成，检测到平台: ' + platform)
+
         // 觸屏端打開APP的方法
         function openApp(url) {
             // 為了兼容舊版本打開app的連接，對商用租屋連接特殊處理，去除business/
             let href = typeof url === 'string' ? url : window.location.href
             if (href.includes('business/rent')) {
                 href = href.replace('business/rent', 'rent')
+                logStep('检测到商用租屋链接，已转换为普通租屋链接', 'warning')
             }
 
             // 使用 window.location.href 打開連接
-            console.log('openApp 执行, URL:', href)
+            logStep('openApp 执行, URL: ' + href)
             window.location.href = `https://link.591.com.tw/?link=${href}`
         }
 
         // 统一打开函数的实现
         function unifiedOpen() {
             const link = document.getElementById('testUrl').value || ''
-            console.log('unifiedOpen 执行, platform:', platform, 'link:', link)
+            logStep('unifiedOpen 执行, platform: ' + platform + ', link: ' + link)
 
             // 處理從商店回來后的app打開
             const tryOpenApp = () => {
-                console.log('tryOpenApp 执行, link:', link)
+                logStep('tryOpenApp 执行, link: ' + link, 'success')
                 location.href = `https://link.591.com.tw/?link=${link}`
             }
 
@@ -229,18 +306,18 @@
             const openStore = () => {
                 if (platform === 'other') {
                     // 如果不是移動設備，直接跳轉到link
-                    console.log('非移动设备，直接跳转到 link')
+                    logStep('非移动设备，直接跳转到 link', 'warning')
                     location.href = link
                     return
                 }
-                console.log('准备跳转到商店:', STORE_URLS[platform])
+                logStep('准备跳转到商店: ' + STORE_URLS[platform])
                 location.href = STORE_URLS[platform]
                 setTimeout(() => {
-                    console.log('设置 visibilitychange 监听器')
+                    logStep('设置 visibilitychange 监听器')
                     document.addEventListener('visibilitychange', () => {
-                        console.log('visibilitychange 触发, state:', document.visibilityState)
+                        logStep('visibilitychange 触发, state: ' + document.visibilityState)
                         if (document.visibilityState === 'visible') {
-                            console.log('页面可见，尝试打开App')
+                            logStep('页面可见，尝试打开App', 'success')
                             tryOpenApp()
                         }
                     })
@@ -252,41 +329,41 @@
         // 测试方法1: openApp
         function testOpenApp() {
             const url = document.getElementById('testUrl').value
-            console.log('=== 测试 openApp ===')
-            console.log('输入URL:', url)
+            logStep('=== 测试 openApp ===', 'info')
+            logStep('输入URL: ' + url)
             openApp(url)
         }
 
         // 测试方法2: 统一打开（带延迟）
         function testUnifiedOpen() {
-            console.log('=== 测试 统一打开（商店→App）===')
+            logStep('=== 测试 统一打开（商店→App）===', 'info')
             unifiedOpen()
         }
 
         // 测试方法3: 直接统一打开（用于测试）
         function testUnifiedOpenDirect() {
             const link = document.getElementById('testUrl').value || ''
-            console.log('=== 测试 统一打开（直接）===')
-            console.log('platform:', platform)
+            logStep('=== 测试 统一打开（直接）===', 'info')
+            logStep('platform: ' + platform)
 
             if (platform === 'other') {
-                console.log('非移动设备，直接跳转到 link:', link)
+                logStep('非移动设备，直接跳转到 link: ' + link, 'warning')
                 location.href = link
                 return
             }
 
             // 处理从商店回来后的app打开
             const tryOpenApp = () => {
-                console.log('tryOpenApp 执行')
+                logStep('tryOpenApp 执行', 'success')
                 location.href = `https://link.591.com.tw/?link=${link}`
             }
 
-            console.log('跳转到商店:', STORE_URLS[platform])
+            logStep('跳转到商店: ' + STORE_URLS[platform])
             location.href = STORE_URLS[platform]
 
             // 立即设置监听器（不延迟）
             document.addEventListener('visibilitychange', () => {
-                console.log('visibilitychange 触发, state:', document.visibilityState)
+                logStep('visibilitychange 触发, state: ' + document.visibilityState)
                 if (document.visibilityState === 'visible') {
                     tryOpenApp()
                 }
