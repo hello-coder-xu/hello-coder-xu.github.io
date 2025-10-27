@@ -237,13 +237,35 @@
 
     <script>
         // 步骤记录功能
-        function logStep(message, type = 'info') {
+        function logStep(message, type = 'info', caller = '') {
             const stepsList = document.getElementById('stepsList')
             const stepDiv = document.createElement('div')
             const timestamp = new Date().toLocaleTimeString()
 
+            // 如果没有提供 caller，尝试从错误堆栈中获取
+            if (!caller) {
+                try {
+                    const err = new Error()
+                    const stack = err.stack || err.stackTrace
+                    if (stack) {
+                        const stackLines = stack.split('\n')
+                        // 第3行是实际调用者 (0是自己，1是logStep，2是调用logStep的函数)
+                        if (stackLines[2]) {
+                            const match = stackLines[2].match(/at (\w+)/)
+                            if (match && match[1]) {
+                                caller = match[1]
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // 无法获取堆栈信息时忽略
+                }
+            }
+
+            const callerInfo = caller ? `[${caller}] ` : ''
+
             stepDiv.className = `step-item ${type}`
-            stepDiv.textContent = `[${timestamp}] ${message}`
+            stepDiv.textContent = `[${timestamp}] ${callerInfo}${message}`
 
             stepsList.appendChild(stepDiv)
             stepsList.scrollTop = stepsList.scrollHeight
