@@ -461,19 +461,7 @@
             // const url = 'https://591.to/mQ0j'
             logStep('=== 测试 自动打开App ===', 'info')
             logStep('输入URL: ' + url)
-
-            // 使用 iframe 方式打开 deep link
-            const iframe = document.createElement('iframe')
-            iframe.style.display = 'none'
-            iframe.src = 'tw591:///main/tabbar?entrance=im'
-            document.body.appendChild(iframe)
-
-            // 短暂延迟后移除 iframe
-            setTimeout(() => {
-                document.body.removeChild(iframe)
-            }, 1000)
-
-            logStep('已创建 iframe 尝试打开 App', 'success')
+            openApp(url)
         }
 
         // 页面加载时自动显示加载中，2秒后消失并调用testAutoOpenApp
