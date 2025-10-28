@@ -393,16 +393,16 @@
                 logStep('准备跳转到商店: ' + STORE_URLS[platform])
                 // 在新窗口打开商店，确保可以返回
                 window.open(STORE_URLS[platform], '_blank')
-                setTimeout(() => {
-                    logStep('设置 visibilitychange 监听器')
-                    document.addEventListener('visibilitychange', () => {
-                        logStep('visibilitychange 触发, state: ' + document.visibilityState)
-                        if (document.visibilityState === 'visible') {
-                            logStep('页面可见，尝试打开App', 'success')
-                            tryOpenApp()
-                        }
-                    })
-                }, 1500)
+                // setTimeout(() => {
+                //     logStep('设置 visibilitychange 监听器')
+                //     document.addEventListener('visibilitychange', () => {
+                //         logStep('visibilitychange 触发, state: ' + document.visibilityState)
+                //         if (document.visibilityState === 'visible') {
+                //             logStep('页面可见，尝试打开App', 'success')
+                //             tryOpenApp()
+                //         }
+                //     })
+                // }, 1500)
             }
             openStore()
         }
@@ -444,12 +444,12 @@
             window.open(STORE_URLS[platform], '_blank')
 
             // 立即设置监听器（不延迟）
-            document.addEventListener('visibilitychange', () => {
-                logStep('visibilitychange 触发, state: ' + document.visibilityState)
-                if (document.visibilityState === 'visible') {
-                    tryOpenApp()
-                }
-            })
+            // document.addEventListener('visibilitychange', () => {
+            //     logStep('visibilitychange 触发, state: ' + document.visibilityState)
+            //     if (document.visibilityState === 'visible') {
+            //         tryOpenApp()
+            //     }
+            // })
         }
     </script>
 </body>
