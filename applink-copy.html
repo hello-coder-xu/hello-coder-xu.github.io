@@ -300,24 +300,31 @@
             console.log(mimeArr);
             var uuid = "";
             for (var i = 0; i < mimeArr.length; i++) {
-                switch (mimeArr[i]) {
+                var value = mimeArr[i]
+                switch (value) {
                     case "text/plain":
                         uuid += (i * 1) % 10;
+                        console.log("类型", value, uuid);
                         break;
                     case "text/html":
                         uuid += (i * 2) % 10;
+                        console.log("类型", value, uuid);
                         break;
                     case "text/uri-list":
                         uuid += (i * 3) % 10;
+                        console.log("类型", value, uuid);
                         break;
                     case "image/png":
                         uuid += (i * 4) % 10;
+                        console.log("类型", value, uuid);
                         break;
                     case "":
                         uuid += (i * 5) % 10;
+                        console.log("类型", value, uuid);
                         break;
                 }
             }
+            uuid += "abcdefghijklmnopqrstuvwxyz"
             console.log(uuid);
             return uuid;
         }
