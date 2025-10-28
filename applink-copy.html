@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AppLink 测试（带剪切板复制）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .info-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .info-section h2 {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .info-item {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .info-label {
+            color: #999;
+            display: inline-block;
+            width: 100px;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .hint {
+            margin-top: 15px;
+            padding: 10px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #856404;
+        }
+
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>AppLink 测试（带剪切板复制）</h1>
+
+        <div class="info-section">
+            <h2>环境信息</h2>
+            <div class="info-item">
+                <span class="info-label">平台类型:</span>
+                <span class="info-value" id="platform">检测中...</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">User Agent:</span>
+                <span class="info-value" id="userAgent">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">当前 URL:</span>
+                <span class="info-value" id="currentUrl">-</span>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="testUrl">测试 URL (applink 链接):</label>
+            <input type="text" id="testUrl"
+                placeholder="例如: https://591.to/WqS8 或 https://m.591.com.tw/v2/rent/16834698"
+                value="https://m.591.com.tw/%3Ftw591%3A%2F%2F%2Fmain%2Ftabbar%3Fentrance%3Dim">
+        </div>
+
+        <button class="btn-primary" onclick="testOpenApp()">
+            打开 App
+        </button>
+
+        <div id="message" class="message"></div>
+
+        <div class="hint">
+            <strong>说明:</strong><br>
+            • 点击按钮将尝试打开 App<br>
+            • 如果无法打开 App（比如没有安装），链接会自动复制到剪切板<br>
+            • 提示信息会显示在按钮下方
+        </div>
+    </div>
+
+    <script>
+        // 检测平台
+        const platform = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())
+            ? 'ios'
+            : /android/.test(navigator.userAgent.toLowerCase())
+                ? 'android'
+                : 'other'
+
+        // 显示环境信息
+        document.getElementById('platform').textContent = platform
+        document.getElementById('userAgent').textContent = navigator.userAgent
+        document.getElementById('currentUrl').textContent = window.location.href
+
+        // 显示消息的函数
+        function showMessage(text, type = 'info') {
+            const messageEl = document.getElementById('message')
+            messageEl.textContent = text
+            messageEl.className = `message ${type} show`
+
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                messageEl.classList.remove('show')
+            }, 3000)
+        }
+
+        // 复制到剪切板的函数
+        async function copyToClipboard(text) {
+            try {
+                // 尝试使用 Clipboard API
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text)
+                    return true
+                }
+
+                // 降级方案：使用旧的 execCommand 方法
+                const textArea = document.createElement('textarea')
+                textArea.value = text
+                textArea.style.position = 'fixed'
+                textArea.style.opacity = '0'
+                document.body.appendChild(textArea)
+                textArea.select()
+
+                const succeeded = document.execCommand('copy')
+                document.body.removeChild(textArea)
+
+                return succeeded
+            } catch (err) {
+                console.error('复制失败:', err)
+                return false
+            }
+        }
+
+        // 触屏端打开APP的方法（参照原页面的 openApp 函数）
+        function openApp(url) {
+            // 為了兼容舊版本打開app的連接，對商用租屋連接特殊處理，去除business/
+            let href = typeof url === 'string' ? url : window.location.href
+            if (href.includes('business/rent')) {
+                href = href.replace('business/rent', 'rent')
+            }
+
+            // 在当前页面跳转
+            const appLink = `https://link.591.com.tw/?link=${href}`
+            location.href = appLink
+        }
+
+        // 测试打开 App（带剪切板备用方案）
+        function testOpenApp() {
+            const url = document.getElementById('testUrl').value || ''
+
+            if (!url) {
+                showMessage('请输入测试 URL', 'error')
+                return
+            }
+
+            console.log('尝试打开 App，URL:', url)
+
+            // 标记是否成功打开 App
+            let appOpened = false
+            let hasReturned = false
+
+            // 监听页面可见性变化
+            const handleVisibilityChange = () => {
+                if (document.hidden) {
+                    // 页面隐藏，说明可能打开了 App 或其他应用
+                    console.log('页面隐藏，可能已打开 App')
+                } else {
+                    // 页面重新可见
+                    if (!hasReturned) {
+                        hasReturned = true
+                        console.log('页面重新可见，返回浏览器')
+
+                        // 延迟检查，给 App 打开的时间窗口
+                        setTimeout(() => {
+                            if (!appOpened) {
+                                console.log('未成功打开 App，复制链接到剪切板')
+                                handleAppOpenFailed(url)
+                            }
+                        }, 500)
+                    }
+                }
+            }
+
+            // 监听 blur 事件（页面失去焦点）
+            const handleBlur = () => {
+                console.log('页面失去焦点')
+                appOpened = true
+            }
+
+            // 监听 focus 事件（页面重新获得焦点）
+            const handleFocus = () => {
+                console.log('页面重新获得焦点')
+                if (appOpened && hasReturned) {
+                    setTimeout(() => {
+                        handleAppOpenFailed(url)
+                    }, 500)
+                }
+            }
+
+            // 添加事件监听器
+            document.addEventListener('visibilitychange', handleVisibilityChange)
+            window.addEventListener('blur', handleBlur)
+            window.addEventListener('focus', handleFocus)
+
+            // 2秒后清理事件监听器
+            setTimeout(() => {
+                document.removeEventListener('visibilitychange', handleVisibilityChange)
+                window.removeEventListener('blur', handleBlur)
+                window.removeEventListener('focus', handleFocus)
+            }, 2000)
+
+            // 尝试打开 App
+            try {
+                openApp(url)
+            } catch (err) {
+                console.error('打开 App 失败:', err)
+                handleAppOpenFailed(url)
+            }
+        }
+
+        // 处理 App 打开失败的情况
+        async function handleAppOpenFailed(url) {
+            console.log('App 打开失败，复制链接到剪切板')
+
+            const success = await copyToClipboard(url)
+
+            if (success) {
+                showMessage('无法打开 App，已复制链接到剪切板', 'success')
+                console.log('链接已复制到剪切板:', url)
+            } else {
+                showMessage('无法打开 App 且复制失败，请手动复制链接: ' + url, 'error')
+                console.log('无法复制到剪切板')
+            }
+        }
+    </script>
+</body>
+
+</html>
