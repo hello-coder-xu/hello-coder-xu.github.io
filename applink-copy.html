@@ -262,7 +262,7 @@
         }
 
         // 测试打开 App（带剪切板备用方案）
-        function testOpenApp() {
+        async function testOpenApp() {
             const url = document.getElementById('testUrl').value || ''
 
             if (!url) {
@@ -271,6 +271,18 @@
             }
 
             console.log('尝试打开 App，URL:', url)
+
+
+            const success = await copyToClipboard(url)
+
+            if (success) {
+                showMessage('无法打开 App，已复制链接到剪切板', 'success')
+                console.log('链接已复制到剪切板:', url)
+            } else {
+                showMessage('无法打开 App 且复制失败，请手动复制链接: ' + url, 'error')
+                console.log('无法复制到剪切板')
+            }
+
 
             // 标记是否成功打开 App
             let appOpened = false
