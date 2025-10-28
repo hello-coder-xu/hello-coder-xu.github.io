@@ -364,10 +364,10 @@
                 logStep('检测到商用租屋链接，已转换为普通租屋链接', 'warning')
             }
 
-            // 使用 window.open 在新窗口打开，确保可以返回
+            // 在当前页面跳转
             logStep('openApp 执行, URL: ' + href)
             const appLink = `https://link.591.com.tw/?link=${href}`
-            window.open(appLink, '_blank')
+            location.href = appLink
         }
 
         // 统一打开函数的实现
@@ -375,34 +375,17 @@
             const link = document.getElementById('testUrl').value || ''
             logStep('unifiedOpen 执行, platform: ' + platform + ', link: ' + link)
 
-            // 處理從商店回來后的app打開
-            const tryOpenApp = () => {
-                logStep('tryOpenApp 执行, link: ' + link, 'success')
-                const appLink = `https://link.591.com.tw/?link=${link}`
-                window.open(appLink, '_blank')
-            }
-
             // 處理商店打開
             const openStore = () => {
                 if (platform === 'other') {
                     // 如果不是移動設備，直接跳轉到link
                     logStep('非移动设备，直接跳转到 link', 'warning')
-                    window.open(link, '_blank')
+                    location.href = link
                     return
                 }
                 logStep('准备跳转到商店: ' + STORE_URLS[platform])
-                // 在新窗口打开商店，确保可以返回
-                window.open(STORE_URLS[platform], '_blank')
-                // setTimeout(() => {
-                //     logStep('设置 visibilitychange 监听器')
-                //     document.addEventListener('visibilitychange', () => {
-                //         logStep('visibilitychange 触发, state: ' + document.visibilityState)
-                //         if (document.visibilityState === 'visible') {
-                //             logStep('页面可见，尝试打开App', 'success')
-                //             tryOpenApp()
-                //         }
-                //     })
-                // }, 1500)
+                // 在当前页面跳转到商店
+                location.href = STORE_URLS[platform]
             }
             openStore()
         }
@@ -429,27 +412,12 @@
 
             if (platform === 'other') {
                 logStep('非移动设备，直接跳转到 link: ' + link, 'warning')
-                window.open(link, '_blank')
+                location.href = link
                 return
             }
 
-            // 处理从商店回来后的app打开
-            const tryOpenApp = () => {
-                logStep('tryOpenApp 执行', 'success')
-                const appLink = `https://link.591.com.tw/?link=${link}`
-                window.open(appLink, '_blank')
-            }
-
             logStep('跳转到商店: ' + STORE_URLS[platform])
-            window.open(STORE_URLS[platform], '_blank')
-
-            // 立即设置监听器（不延迟）
-            // document.addEventListener('visibilitychange', () => {
-            //     logStep('visibilitychange 触发, state: ' + document.visibilityState)
-            //     if (document.visibilityState === 'visible') {
-            //         tryOpenApp()
-            //     }
-            // })
+            location.href = STORE_URLS[platform]
         }
     </script>
 </body>
