@@ -160,10 +160,41 @@
             • 点击按钮将内容复制到剪切板<br>
             • 复制结果会显示在按钮下方
         </div>
+
+        <div id="console-output"
+            style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6; max-height: 300px; overflow-y: auto;">
+            <h3 style="margin-bottom: 10px; color: #495057; font-size: 16px;">调试信息:</h3>
+            <div id="console-logs"
+                style="font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; color: #212529;"></div>
+        </div>
     </div>
 
     <script>
         // 简单的复制功能，不需要平台检测
+
+        // 在页面上显示调试信息的函数
+        function logToPage(message, type = 'log') {
+            const logsContainer = document.getElementById('console-logs')
+            const timestamp = new Date().toLocaleTimeString()
+            const logEntry = document.createElement('div')
+            logEntry.style.marginBottom = '5px'
+            logEntry.style.padding = '5px'
+            logEntry.style.borderRadius = '3px'
+
+            if (type === 'error') {
+                logEntry.style.backgroundColor = '#f8d7da'
+                logEntry.style.color = '#721c24'
+                logEntry.innerHTML = `<span style="color: #6c757d;">[${timestamp}]</span> <span style="color: #dc3545; font-weight: bold;">ERROR:</span> ${message}`
+            } else {
+                logEntry.style.backgroundColor = '#d1ecf1'
+                logEntry.style.color = '#0c5460'
+                logEntry.innerHTML = `<span style="color: #6c757d;">[${timestamp}]</span> <span style="color: #17a2b8; font-weight: bold;">LOG:</span> ${message}`
+            }
+
+            logsContainer.appendChild(logEntry)
+            // 自动滚动到最新的日志
+            logsContainer.scrollTop = logsContainer.scrollHeight
+        }
 
         // 显示消息的函数
         function showMessage(text, type = 'info') {
@@ -209,6 +240,7 @@
                 }
             } catch (err) {
                 console.error('复制失败:', err)
+                logToPage('复制失败: ' + err.message, 'error')
             }
             return false
         }
@@ -223,14 +255,17 @@
             }
 
             console.log('复制文本:', text)
+            logToPage('复制文本: ' + text)
 
             const success = await copyToClipboard(text, type)
 
             if (success) {
                 console.log('文本已复制到剪切板:', text)
+                logToPage('文本已复制到剪切板: ' + text)
             } else {
                 showMessage('复制失败，请手动复制: ' + text, 'error')
                 console.log('无法复制到剪切板')
+                logToPage('无法复制到剪切板')
             }
 
         }
@@ -290,14 +325,21 @@
             });
             navigator.clipboard
                 .write(clipboardItems)
-                .then((res) => console.log("复制成功 ", res))
-                .catch((err) => console.error("复制失败，", err));
+                .then((res) => {
+                    console.log("复制成功 ", res)
+                    logToPage("复制成功: " + JSON.stringify(res))
+                })
+                .catch((err) => {
+                    console.error("复制失败，", err)
+                    logToPage("复制失败: " + err.message, 'error')
+                });
         }
 
 
         function generateUUID() {
             var mimeArr = generateMineTypeArray();
             console.log(mimeArr);
+            logToPage('MimeType数组: ' + JSON.stringify(mimeArr));
             var uuid = "";
             for (var i = 0; i < mimeArr.length; i++) {
                 var value = mimeArr[i]
@@ -305,27 +347,33 @@
                     case "text/plain":
                         uuid += (i * 1) % 10;
                         console.log("类型", value, uuid);
+                        logToPage('类型: ' + value + ', UUID: ' + uuid);
                         break;
                     case "text/html":
                         uuid += (i * 2) % 10;
                         console.log("类型", value, uuid);
+                        logToPage('类型: ' + value + ', UUID: ' + uuid);
                         break;
                     case "text/uri-list":
                         uuid += (i * 3) % 10;
                         console.log("类型", value, uuid);
+                        logToPage('类型: ' + value + ', UUID: ' + uuid);
                         break;
                     case "image/png":
                         uuid += (i * 4) % 10;
                         console.log("类型", value, uuid);
+                        logToPage('类型: ' + value + ', UUID: ' + uuid);
                         break;
                     case "":
                         uuid += (i * 5) % 10;
                         console.log("类型", value, uuid);
+                        logToPage('类型: 空字符串, UUID: ' + uuid);
                         break;
                 }
             }
             uuid += "abcdefghijklmnopqrstuvwxyz"
             console.log(uuid);
+            logToPage('最终 UUID: ' + uuid);
             return uuid;
         }
 
