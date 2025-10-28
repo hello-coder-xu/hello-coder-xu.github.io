@@ -136,8 +136,12 @@
             <input type="text" id="textInput" placeholder="请输入要复制的内容" value="test12345">
         </div>
 
-        <button class="btn-primary" onclick="copyText()">
-            复制到剪切板
+        <button class="btn-primary" onclick="copyText(1)">
+            Clipboard API复制
+        </button>
+
+        <button class="btn-primary" onclick="copyText(2)">
+            execCommand 方法复制
         </button>
 
         <div id="message" class="message"></div>
@@ -166,35 +170,36 @@
         }
 
         // 复制到剪切板的函数
-        async function copyToClipboard(text) {
+        async function copyToClipboard(text, type = 1) {
             try {
-                // 尝试使用 Clipboard API
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    await navigator.clipboard.writeText(text)
-                    showMessage('用 Clipboard API', 'success')
-                    return true
+                if (type === 1) {
+                    // 尝试使用 Clipboard API
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(text)
+                        showMessage('用 Clipboard API', 'success')
+                        return true
+                    }
+                } else if (type === 2) {
+                    // 尝试使用 execCommand 方法
+                    const textArea = document.createElement('textarea')
+                    textArea.value = text
+                    textArea.style.position = 'fixed'
+                    textArea.style.opacity = '0'
+                    document.body.appendChild(textArea)
+                    textArea.select()
+                    const succeeded = document.execCommand('copy')
+                    document.body.removeChild(textArea)
+                    showMessage('用 execCommand 方法', 'success')
+                    return succeeded
                 }
-
-                // 降级方案：使用旧的 execCommand 方法
-                const textArea = document.createElement('textarea')
-                textArea.value = text
-                textArea.style.position = 'fixed'
-                textArea.style.opacity = '0'
-                document.body.appendChild(textArea)
-                textArea.select()
-
-                const succeeded = document.execCommand('copy')
-                document.body.removeChild(textArea)
-                showMessage('用 execCommand 方法', 'success')
-                return succeeded
             } catch (err) {
                 console.error('复制失败:', err)
-                return false
             }
+            return false
         }
 
         // 复制文本的函数
-        async function copyText() {
+        async function copyText(type = 1) {
             const text = document.getElementById('textInput').value || ''
 
             if (!text) {
@@ -204,7 +209,7 @@
 
             console.log('复制文本:', text)
 
-            const success = await copyToClipboard(text)
+            const success = await copyToClipboard(text, type)
 
             if (success) {
                 console.log('文本已复制到剪切板:', text)
