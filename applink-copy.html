@@ -173,10 +173,17 @@
         async function copyToClipboard(text, type = 1) {
             try {
                 if (type === 1) {
-                    // 尝试使用 Clipboard API
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        await navigator.clipboard.writeText(text)
-                        showMessage('用 Clipboard API', 'success')
+                    // 尝试使用 navigator.clipboard.write 方法支持富数据（文本数据、二进制数据）到剪贴板
+                    if (navigator.clipboard && navigator.clipboard.write) {
+                        // 构造 ClipboardItem 作为参数传入，clipboardItem 的构造函数接受一个对象作为参数
+                        // 该对象的 key 是数据的 MIME 类型，value 是 Blob 类型对象数据
+                        const blob = new Blob([text], { type: 'text/plain' })
+                        await navigator.clipboard.write([
+                            new ClipboardItem({
+                                [blob.type]: blob,
+                            })
+                        ])
+                        showMessage('用 navigator.clipboard.write 方法复制成功', 'success')
                         return true
                     }
                 } else if (type === 2) {
@@ -217,6 +224,7 @@
                 showMessage('复制失败，请手动复制: ' + text, 'error')
                 console.log('无法复制到剪切板')
             }
+
         }
     </script>
 </body>
