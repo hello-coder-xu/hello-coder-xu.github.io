@@ -461,7 +461,8 @@
             // const url = 'https://591.to/mQ0j'
             logStep('=== 测试 自动打开App ===', 'info')
             logStep('输入URL: ' + url)
-            openApp(url)
+            // openApp(url)
+            window.location.href = `tw591:///main/tabbar?entrance=im`
         }
 
         // 页面加载时自动显示加载中，2秒后消失并调用testAutoOpenApp
