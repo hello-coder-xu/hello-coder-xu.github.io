@@ -371,9 +371,10 @@
                 logStep('检测到商用租屋链接，已转换为普通租屋链接', 'warning')
             }
 
-            // 使用 window.location.href 打開連接
+            // 使用 window.open 在新窗口打开，确保可以返回
             logStep('openApp 执行, URL: ' + href)
-            window.location.href = `https://link.591.com.tw/?link=${href}`
+            const appLink = `https://link.591.com.tw/?link=${href}`
+            window.open(appLink, '_blank')
         }
 
         // 统一打开函数的实现
@@ -384,7 +385,8 @@
             // 處理從商店回來后的app打開
             const tryOpenApp = () => {
                 logStep('tryOpenApp 执行, link: ' + link, 'success')
-                location.href = `https://link.591.com.tw/?link=${link}`
+                const appLink = `https://link.591.com.tw/?link=${link}`
+                window.open(appLink, '_blank')
             }
 
             // 處理商店打開
@@ -392,11 +394,12 @@
                 if (platform === 'other') {
                     // 如果不是移動設備，直接跳轉到link
                     logStep('非移动设备，直接跳转到 link', 'warning')
-                    location.href = link
+                    window.open(link, '_blank')
                     return
                 }
                 logStep('准备跳转到商店: ' + STORE_URLS[platform])
-                location.href = STORE_URLS[platform]
+                // 在新窗口打开商店，确保可以返回
+                window.open(STORE_URLS[platform], '_blank')
                 setTimeout(() => {
                     logStep('设置 visibilitychange 监听器')
                     document.addEventListener('visibilitychange', () => {
@@ -433,18 +436,19 @@
 
             if (platform === 'other') {
                 logStep('非移动设备，直接跳转到 link: ' + link, 'warning')
-                location.href = link
+                window.open(link, '_blank')
                 return
             }
 
             // 处理从商店回来后的app打开
             const tryOpenApp = () => {
                 logStep('tryOpenApp 执行', 'success')
-                location.href = `https://link.591.com.tw/?link=${link}`
+                const appLink = `https://link.591.com.tw/?link=${link}`
+                window.open(appLink, '_blank')
             }
 
             logStep('跳转到商店: ' + STORE_URLS[platform])
-            location.href = STORE_URLS[platform]
+            window.open(STORE_URLS[platform], '_blank')
 
             // 立即设置监听器（不延迟）
             document.addEventListener('visibilitychange', () => {
@@ -454,31 +458,6 @@
                 }
             })
         }
-
-        // 测试方法4: 自动打开App
-        function testAutoOpenApp() {
-            const url = 'https//m.591.com.tw/?tw591:///main/tabbar?entrance=im'
-            // const url = 'https://591.to/mQ0j'
-            logStep('=== 测试 自动打开App ===', 'info')
-            logStep('输入URL: ' + url)
-            openApp(url)
-        }
-
-        // 页面加载时自动显示加载中，2秒后消失并调用testAutoOpenApp
-        window.addEventListener('DOMContentLoaded', function () {
-            const loadingOverlay = document.getElementById('loadingOverlay')
-
-            // 2秒后隐藏加载动画并调用testAutoOpenApp
-            setTimeout(function () {
-                loadingOverlay.classList.add('hidden')
-
-                // 延迟一点时间让淡出动画完成后再调用函数
-                setTimeout(function () {
-                    testAutoOpenApp()
-                }, 300)
-            }, 2000)
-        })
-
     </script>
 </body>
 
