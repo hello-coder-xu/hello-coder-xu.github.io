@@ -133,15 +133,23 @@
 
         <div class="input-group">
             <label for="textInput">输入内容:</label>
-            <input type="text" id="textInput" placeholder="请输入要复制的内容" value="yinxu111">
+            <input type="text" id="textInput" placeholder="请输入要复制的内容" value="1234567890">
         </div>
 
         <button class="btn-primary" style="margin-bottom: 10px;" onclick="copyText(1)">
             Clipboard API复制
         </button>
 
-        <button class="btn-primary" onclick="copyText(2)">
+        <button class="btn-primary" style="margin-bottom: 10px;" onclick="copyText(2)">
             execCommand 方法复制
+        </button>
+
+        <button class="btn-primary" style="margin-bottom: 10px;" onclick="copyIniOS()">
+            iOS 复制
+        </button>
+
+        <button class="btn-primary" onclick="copyInAndroid()">
+            Android 复制
         </button>
 
         <div id="message" class="message"></div>
@@ -227,9 +235,145 @@
 
         }
 
-        // 自动复制
-        copyText(1)
+        // 生成包含 MimeType 五种类型的字符串数组，数组长度为19
+        function generateMineTypeArray() {
+            const MimeType = [
+                "text/plain",
+                "text/html",
+                "text/uri-list",
+                "image/png",
+                "",
+            ];
+            var mimeSize = 19;
+            var mimeArr = []; // 数组长度为19
+            for (var i = 0; i < MimeType.length; i++) {
+                // 为MimeType每种生成 0-9 个MimeType并添加到数组中
+                var randomNumber = Math.ceil(Math.random() * 9);
+                mimeSize -= randomNumber;
+                if (mimeSize > 0) {
+                    for (var j = 0; j < randomNumber; j++) {
+                        mimeArr.push(MimeType[i]);
+                    }
+                } else {
+                    for (var j = 0; j < mimeSize + randomNumber; j++) {
+                        mimeArr.push(MimeType[i]);
+                    }
+                    break;
+                }
+            }
+            // 如果前面生成完后，mimeArr数组的大小未达到19个，则补充生成最后一种MimeType并添加进数组
+            if (mimeSize > 0) {
+                for (var j = 0; j < mimeSize; j++) {
+                    mimeArr.push(MimeType[4]);
+                }
+            }
+            // 随机交换mimeArr中的元素的位置
+            for (var i = 0; i < mimeArr.length; i++) {
+                var randomNumber = Math.floor(Math.random() * mimeArr.length);
+                if (i == randomNumber) continue;
+                var temp = mimeArr[i];
+                mimeArr[i] = mimeArr[randomNumber];
+                mimeArr[randomNumber] = temp;
+            }
+            return mimeArr;
+        }
 
+
+        function copyIniOS() {
+            // 根据MineType数组生成ClipboardItem数组
+            var clipboardItems = [];
+            var mimeArr = generateMineTypeArray();
+            mimeArr.forEach((mineType) => {
+                const blob = new Blob([""], { type: mineType });
+                var clipboardItem = new ClipboardItem({ [blob.type]: blob });
+                clipboardItems.push(clipboardItem);
+            });
+            navigator.clipboard
+                .write(clipboardItems)
+                .then((res) => console.log("复制成功 ", res))
+                .catch((err) => console.error("复制失败，", err));
+        }
+
+
+        function generateUUID() {
+            var mimeArr = generateMineTypeArray();
+            console.log(mimeArr);
+            var uuid = "";
+            for (var i = 0; i < mimeArr.length; i++) {
+                switch (mimeArr[i]) {
+                    case "text/plain":
+                        uuid += (i * 1) % 10;
+                        break;
+                    case "text/html":
+                        uuid += (i * 2) % 10;
+                        break;
+                    case "text/uri-list":
+                        uuid += (i * 3) % 10;
+                        break;
+                    case "image/png":
+                        uuid += (i * 4) % 10;
+                        break;
+                    case "":
+                        uuid += (i * 5) % 10;
+                        break;
+                }
+            }
+            console.log(uuid);
+            return uuid;
+        }
+
+
+        function copyInAndroid(id) {
+            //create our hidden div element
+            var hiddenCopy = document.createElement("a");
+            //set the innerHTML of the div
+            hiddenCopy.innerHTML = " ";
+            //set the position to be absolute and off the screen
+            hiddenCopy.id = generateUUID();
+            hiddenCopy.style.whiteSpace = "pre";
+
+
+            //check and see if the user had a text selection range
+            var currentRange;
+            if (document.getSelection().rangeCount > 0) {
+                //the user has a text selection range, store it
+                currentRange = document.getSelection().getRangeAt(0);
+                //remove the current selection
+                window.getSelection().removeRange(currentRange);
+            } else {
+                //they didn't have anything selected
+                currentRange = false;
+            }
+
+
+            //append the div to the body
+            document.body.appendChild(hiddenCopy);
+            //create a selection range
+            var CopyRange = document.createRange();
+            //set the copy range to be the hidden div
+            CopyRange.selectNode(hiddenCopy);
+            //add the copy range
+            window.getSelection().addRange(CopyRange);
+
+
+            //since not all browsers support this, use a try block
+            try {
+                //copy the text
+                document.execCommand("copy");
+            } catch (err) {
+                window.alert("Your Browser Doesn't support this! Error : " + err);
+            }
+            //remove the selection range (Chrome throws a warning if we don't.)
+            window.getSelection().removeRange(CopyRange);
+            //remove the hidden div
+            document.body.removeChild(hiddenCopy);
+
+
+            //return the old selection range
+            if (currentRange) {
+                window.getSelection().addRange(currentRange);
+            }
+        }
     </script>
 </body>
 
