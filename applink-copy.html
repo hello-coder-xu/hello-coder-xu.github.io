@@ -279,8 +279,7 @@
                 "image/png",
                 "",
             ];
-            // var mimeSize = 19;
-            var mimeSize = 20;
+            var mimeSize = 19;
             var mimeArr = []; // 数组长度为19
             for (var i = 0; i < MimeType.length; i++) {
                 // 为MimeType每种生成 0-9 个MimeType并添加到数组中
@@ -296,6 +295,8 @@
                     }
                     break;
                 }
+                console.log("mimeArr 循环 ", mimeArr)
+                logToPage("mimeArr 循环: " + JSON.stringify(mimeArr))
             }
             // 如果前面生成完后，mimeArr数组的大小未达到19个，则补充生成最后一种MimeType并添加进数组
             if (mimeSize > 0) {
@@ -310,8 +311,6 @@
                 var temp = mimeArr[i];
                 mimeArr[i] = mimeArr[randomNumber];
                 mimeArr[randomNumber] = temp;
-                console.log("randomNumber ", randomNumber)
-                logToPage("randomNumber: " + randomNumber)
             }
             return mimeArr;
         }
