@@ -318,6 +318,8 @@
             // 根据MineType数组生成ClipboardItem数组
             var clipboardItems = [];
             var mimeArr = generateMineTypeArray();
+            console.log("mimeArr ", mimeArr)
+            logToPage("mimeArr: " + JSON.stringify(mimeArr))
             mimeArr.forEach((mineType) => {
                 const blob = new Blob([""], { type: mineType });
                 var clipboardItem = new ClipboardItem({ [blob.type]: blob });
