@@ -179,11 +179,11 @@
     <a-scene id="vr-scene" vr-mode-ui="enabled: true" embedded renderer="antialias: true; alpha: false"
         background="color: #000000">
         <!-- 全景图片使用 a-sky 元素 -->
-        <a-sky id="panorama-sky" src="./assets/image/pexels-pixabay-346286.jpg" rotation="0 -90 0">
+        <a-sky id="panorama-sky" src="../assets/image/pexels-pixabay-346286.jpg" rotation="0 -90 0">
         </a-sky>
 
         <!-- VR 视频使用 a-videosphere 元素 -->
-        <a-videosphere id="panorama-video" src="./assets/video/vr_video.mp4" rotation="0 -90 0" visible="false"
+        <a-videosphere id="panorama-video" src="../assets/video/vr-video.mp4" rotation="0 -90 0" visible="false"
             autoplay="true" loop="true" muted="true">
         </a-videosphere>
 
@@ -221,7 +221,7 @@
                 { path: '../assets/image/pexels-pixabay-346286.jpg', type: 'image' },
                 { path: '../assets/image/pexels-kelly-2355305.jpg', type: 'image' },
                 { path: '../assets/image/pexels-pixabay-206926.jpg', type: 'image' },
-                { path: '../assets/video/vr_video.mp4', type: 'video' }
+                { path: '../assets/video/vr-video.mp4', type: 'video' }
             ];
 
             let currentPanoramaIndex = 0;
