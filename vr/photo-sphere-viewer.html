@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VR 全景展示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #viewer {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 18px;
+            z-index: 1000;
+        }
+
+        /* 缩略图栏样式 */
+        #thumbnail-bar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 120px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            z-index: 999;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        #thumbnail-bar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #thumbnail-bar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #thumbnail-bar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .thumbnail-item {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            flex-shrink: 0;
+        }
+
+        .thumbnail-item:hover {
+            transform: translateX(-5px) scale(1.05);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+        }
+
+        .thumbnail-item.active {
+            border-color: #4CAF50;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+        }
+
+        .thumbnail-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thumbnail-item::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            transition: background 0.3s ease;
+        }
+
+        .thumbnail-item:hover::after {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .thumbnail-item.active::after {
+            background: rgba(76, 175, 80, 0.2);
+        }
+    </style>
+    <!-- Photo Sphere Viewer CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core/index.min.css">
+    <!-- Markers Plugin CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin/index.min.css">
+</head>
+
+<body>
+    <div id="viewer"></div>
+    <div class="loading" id="loading">正在加载全景图...</div>
+    <div id="thumbnail-bar"></div>
+
+    <!-- Three.js (依赖) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+    <!-- Photo Sphere Viewer Core (UMD 版本，更可靠) -->
+    <script src="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5/index.js"></script>
+    <!-- Markers Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin@5/index.js"></script>
+    <!-- Dual Fisheye Adapter (用于鱼眼图片) -->
+    <script src="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/dual-fisheye-adapter@5/index.js"></script>
+
+    <script>
+        (function () {
+            'use strict';
+
+            const container = document.querySelector('#viewer');
+            const loading = document.querySelector('#loading');
+            const thumbnailBar = document.querySelector('#thumbnail-bar');
+
+            // 全景图列表（type: 'equirectangular' 或 'fisheye'）
+            const panoramaList = [
+                { path: '../assets/image/pexels-pixabay-346286.jpg', type: 'equirectangular' },
+                { path: '../assets/image/pexels-kelly-2355305.jpg', type: 'equirectangular' },
+                { path: '../assets/image/pexels-pixabay-206926.jpg', type: 'equirectangular' }
+            ];
+
+            let currentPanoramaIndex = 0;
+            let viewerInstance = null; // 保存viewer实例，用于切换全景图
+
+            const MAX_WAIT_TIME = 10000; // 最大等待时间（毫秒）
+            const CHECK_INTERVAL = 100; // 依赖检查间隔（毫秒）
+
+            // 更新加载提示
+            function updateLoadingText(text) {
+                if (loading) {
+                    loading.textContent = text;
+                }
+            }
+
+            // 显示错误信息
+            function showError(message) {
+                if (loading) {
+                    loading.textContent = message;
+                    loading.style.whiteSpace = 'pre-line';
+                }
+                console.error(message);
+            }
+
+            // 获取 Viewer 类
+            function getViewer() {
+                if (typeof PhotoSphereViewer === 'undefined') {
+                    return null;
+                }
+                return PhotoSphereViewer.Viewer || PhotoSphereViewer.default?.Viewer || PhotoSphereViewer;
+            }
+
+            // 获取 MarkersPlugin 类
+            function getMarkersPlugin() {
+                if (typeof PhotoSphereViewer === 'undefined') {
+                    return null;
+                }
+                return PhotoSphereViewer.MarkersPlugin || PhotoSphereViewer.default?.MarkersPlugin;
+            }
+
+            // 获取 DualFisheyeAdapter 类
+            function getDualFisheyeAdapter() {
+                if (typeof PhotoSphereViewer === 'undefined') {
+                    return null;
+                }
+                // 尝试多种方式访问 DualFisheyeAdapter
+                return PhotoSphereViewer.DualFisheyeAdapter 
+                    || PhotoSphereViewer.default?.DualFisheyeAdapter
+                    || (typeof window !== 'undefined' && window.DualFisheyeAdapter)
+                    || null;
+            }
+
+
+            // 存储水印精灵对象，用于清理
+            let watermarkSprites = [];
+
+            // 在VR场景中添加文字水印
+            function addWatermarkText(viewer) {
+                try {
+                    // 清理之前的水印
+                    watermarkSprites.forEach(sprite => {
+                        try {
+                            if (sprite.parent) {
+                                sprite.parent.remove(sprite);
+                            }
+                            if (sprite.material) {
+                                sprite.material.map?.dispose();
+                                sprite.material.dispose();
+                            }
+                        } catch (e) {
+                            console.warn('清理水印失败:', e);
+                        }
+                    });
+                    watermarkSprites = [];
+
+                    // 尝试多种方式访问 Three.js 场景
+                    let scene = null;
+
+                    // 方法1: 通过 adapter
+                    if (viewer.adapter && viewer.adapter.scene) {
+                        scene = viewer.adapter.scene;
+                    }
+                    // 方法2: 直接访问 viewer 的内部属性
+                    else if (viewer.scene) {
+                        scene = viewer.scene;
+                    }
+                    // 方法3: 通过 renderer 查找
+                    else if (viewer.renderer && viewer.renderer.scene) {
+                        scene = viewer.renderer.scene;
+                    }
+
+                    if (!scene) {
+                        console.warn('无法访问场景对象，查看 viewer 结构:', viewer);
+                        // 尝试延迟重试
+                        setTimeout(() => addWatermarkText(viewer), 500);
+                        return;
+                    }
+
+                    // 创建带白色圆形背景的文字纹理
+                    function createTextTextureWithCircle(text, fontSize = 36, circleRadius = 120) {
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        // 设置画布大小，确保能容纳圆形和阴影
+                        const padding = 20;
+                        const shadowBlur = 8;
+                        canvas.width = circleRadius * 2 + padding * 2 + shadowBlur * 2;
+                        canvas.height = circleRadius * 2 + padding * 2 + shadowBlur * 2;
+                        const centerX = canvas.width / 2;
+                        const centerY = canvas.height / 2;
+
+                        // 绘制阴影
+                        context.beginPath();
+                        context.arc(centerX, centerY + 2, circleRadius, 0, Math.PI * 2);
+                        context.fillStyle = 'rgba(0, 0, 0, 0.15)';
+                        context.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                        context.shadowBlur = shadowBlur;
+                        context.shadowOffsetX = 0;
+                        context.shadowOffsetY = 2;
+                        context.fill();
+
+                        // 重置阴影设置
+                        context.shadowColor = 'transparent';
+                        context.shadowBlur = 0;
+                        context.shadowOffsetX = 0;
+                        context.shadowOffsetY = 0;
+
+                        // 绘制白色圆形背景
+                        context.beginPath();
+                        context.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+                        context.fillStyle = '#ffffff';
+                        context.fill();
+
+                        // 绘制细边框
+                        context.beginPath();
+                        context.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+                        context.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+                        context.lineWidth = 2;
+                        context.stroke();
+
+                        // 绘制文字（使用更好的字体和颜色）
+                        context.fillStyle = '#1a1a1a';
+                        context.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif`;
+                        context.textAlign = 'center';
+                        context.textBaseline = 'middle';
+                        // 添加文字阴影使文字更清晰
+                        context.shadowColor = 'rgba(255, 255, 255, 0.8)';
+                        context.shadowBlur = 2;
+                        context.shadowOffsetX = 0;
+                        context.shadowOffsetY = 0;
+                        context.fillText(text, centerX, centerY);
+
+                        const texture = new THREE.CanvasTexture(canvas);
+                        texture.needsUpdate = true;
+                        return texture;
+                    }
+
+                    // 统一的圆形大小（半径）- 减小尺寸
+                    const circleRadius = 120;
+                    // 统一的缩放比例，确保头顶和脚底的圆大小一致 - 减小缩放
+                    const spriteScale = 1.5;
+
+                    // 创建顶部文字（头顶位置）
+                    const topTexture = createTextTextureWithCircle('数睿科技', 36, circleRadius);
+                    const topMaterial = new THREE.SpriteMaterial({
+                        map: topTexture,
+                        transparent: true,
+                        alphaTest: 0.01,
+                        depthTest: false,
+                        depthWrite: false
+                    });
+                    const topSprite = new THREE.Sprite(topMaterial);
+                    // 使用统一的缩放比例
+                    topSprite.scale.set(spriteScale, spriteScale, 1);
+                    // 放置在头顶位置（Y轴正方向，在球面顶部黑色区域）
+                    topSprite.position.set(0, 1.5, 0);
+                    // 确保始终在最上层渲染
+                    topSprite.renderOrder = 999;
+                    scene.add(topSprite);
+                    watermarkSprites.push(topSprite);
+
+                    // 创建底部文字（脚底位置）
+                    const bottomTexture = createTextTextureWithCircle('数睿科技', 36, circleRadius);
+                    const bottomMaterial = new THREE.SpriteMaterial({
+                        map: bottomTexture,
+                        transparent: true,
+                        alphaTest: 0.01,
+                        depthTest: false,
+                        depthWrite: false
+                    });
+                    const bottomSprite = new THREE.Sprite(bottomMaterial);
+                    // 使用统一的缩放比例，确保与顶部一致
+                    bottomSprite.scale.set(spriteScale, spriteScale, 1);
+                    // 放置在脚底位置（Y轴负方向，在球面底部黑色区域）
+                    bottomSprite.position.set(0, -1.5, 0);
+                    bottomSprite.renderOrder = 999;
+                    scene.add(bottomSprite);
+                    watermarkSprites.push(bottomSprite);
+
+                    console.log('水印文字已添加到VR场景');
+                } catch (error) {
+                    console.error('添加水印文字失败:', error);
+                }
+            }
+
+            // 添加建筑物标记
+            function addBuildingMarker(viewer) {
+                try {
+                    const MarkersPlugin = getMarkersPlugin();
+                    if (!MarkersPlugin) {
+                        console.warn('MarkersPlugin 未加载');
+                        return;
+                    }
+
+                    const markersPlugin = viewer.getPlugin(MarkersPlugin);
+                    if (!markersPlugin) {
+                        console.warn('无法获取 MarkersPlugin 实例');
+                        return;
+                    }
+
+                    // 清除之前的标记
+                    markersPlugin.clearMarkers();
+
+                    // 根据当前全景图索引设置不同的标记位置和内容
+                    const markerConfigs = [
+                        {
+                            id: 'case-1',
+                            position: { yaw: '45deg', pitch: '10deg' },
+                            content: '案例1'
+                        },
+                        {
+                            id: 'case-2',
+                            position: { yaw: '135deg', pitch: '5deg' },
+                            content: '案例2'
+                        },
+                        {
+                            id: 'case-3',
+                            position: { yaw: '225deg', pitch: '15deg' },
+                            content: '案例3'
+                        }
+                    ];
+
+                    const config = markerConfigs[currentPanoramaIndex] || markerConfigs[0];
+
+                    // 添加标记
+                    // 位置参数说明：
+                    // yaw: 水平角度（0-360度或弧度），0度是正前方
+                    // pitch: 垂直角度（-90到90度或弧度），0度是水平线
+                    markersPlugin.addMarker({
+                        id: config.id,
+                        position: config.position,
+                        // HTML 内容
+                        html: `<div style="background: rgba(0, 0, 0, 0.7); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 16px; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">${config.content}</div>`,
+                        // 锚点：标记底部中心对齐到位置点
+                        anchor: 'bottom center',
+                        // 缩放比例
+                        scale: [1, 1],
+                        // 样式
+                        style: {
+                            maxWidth: '200px'
+                        },
+                        // 工具提示
+                        tooltip: {
+                            content: config.content,
+                            position: 'top center'
+                        }
+                    });
+
+                    console.log('建筑物标记已添加:', config.content);
+                } catch (error) {
+                    console.error('添加建筑物标记失败:', error);
+                }
+            }
+
+            // 创建缩略图栏
+            function createThumbnailBar() {
+                if (!thumbnailBar) return;
+
+                thumbnailBar.innerHTML = '';
+
+                panoramaList.forEach((panoramaItem, index) => {
+                    const panoramaPath = typeof panoramaItem === 'string' ? panoramaItem : panoramaItem.path;
+                    const thumbnailItem = document.createElement('div');
+                    thumbnailItem.className = 'thumbnail-item';
+                    if (index === currentPanoramaIndex) {
+                        thumbnailItem.classList.add('active');
+                    }
+
+                    // 图片缩略图
+                    const img = document.createElement('img');
+                    img.src = panoramaPath;
+                    img.alt = `全景图 ${index + 1}`;
+                    img.loading = 'lazy';
+                    thumbnailItem.appendChild(img);
+
+                    // 点击切换全景图
+                    thumbnailItem.addEventListener('click', () => {
+                        switchPanorama(index);
+                    });
+
+                    thumbnailBar.appendChild(thumbnailItem);
+                });
+            }
+
+            // 切换全景图
+            function switchPanorama(index) {
+                if (index === currentPanoramaIndex || !viewerInstance) return;
+                if (index < 0 || index >= panoramaList.length) return;
+
+                currentPanoramaIndex = index;
+                const panoramaItem = panoramaList[index];
+                const newPanoramaPath = typeof panoramaItem === 'string' ? panoramaItem : panoramaItem.path;
+                const panoramaType = typeof panoramaItem === 'string' ? 'equirectangular' : (panoramaItem.type || 'equirectangular');
+                
+                // 如果类型改变，需要重新初始化 Viewer
+                const currentType = viewerInstance.config?.adapter ? 'fisheye' : 'equirectangular';
+                if (panoramaType !== currentType) {
+                    // 销毁当前实例并重新初始化
+                    if (viewerInstance) {
+                        viewerInstance.destroy();
+                        viewerInstance = null;
+                    }
+                    const Viewer = getViewer();
+                    if (Viewer) {
+                        initViewer(Viewer);
+                    }
+                    return;
+                }
+
+                // 更新缩略图栏的激活状态
+                const thumbnails = thumbnailBar.querySelectorAll('.thumbnail-item');
+                thumbnails.forEach((thumb, i) => {
+                    if (i === index) {
+                        thumb.classList.add('active');
+                    } else {
+                        thumb.classList.remove('active');
+                    }
+                });
+
+                // 显示加载提示
+                if (loading) {
+                    loading.style.display = 'block';
+                    updateLoadingText('正在切换全景图...');
+                }
+
+                // 切换全景图
+                try {
+                    // 使用Promise方式处理切换
+                    const switchPromise = new Promise((resolve, reject) => {
+                        const timeout = setTimeout(() => {
+                            // 清理事件监听器
+                            viewerInstance.removeEventListener('ready', onReady);
+                            viewerInstance.removeEventListener('panorama-changed', onPanoramaChanged);
+                            reject(new Error('切换超时'));
+                        }, 10000);
+
+                        const onReady = () => {
+                            clearTimeout(timeout);
+                            viewerInstance.removeEventListener('ready', onReady);
+                            viewerInstance.removeEventListener('panorama-changed', onPanoramaChanged);
+                            resolve();
+                        };
+
+                        const onPanoramaChanged = () => {
+                            clearTimeout(timeout);
+                            viewerInstance.removeEventListener('ready', onReady);
+                            viewerInstance.removeEventListener('panorama-changed', onPanoramaChanged);
+                            // 延迟一下确保场景已更新
+                            setTimeout(() => resolve(), 100);
+                        };
+
+                        viewerInstance.addEventListener('ready', onReady);
+                        viewerInstance.addEventListener('panorama-changed', onPanoramaChanged);
+                    });
+
+                    viewerInstance.setPanorama(newPanoramaPath, {
+                        showLoader: false
+                    });
+
+                    // 等待切换完成
+                    switchPromise.then(() => {
+                        if (loading) {
+                            loading.style.display = 'none';
+                        }
+                        // 重新添加水印和标记
+                        setTimeout(() => {
+                            addWatermarkText(viewerInstance);
+                            addBuildingMarker(viewerInstance);
+                        }, 100);
+                    }).catch((error) => {
+                        console.error('切换失败:', error);
+                        if (loading) {
+                            loading.style.display = 'none';
+                        }
+                    });
+                } catch (error) {
+                    console.error('切换失败:', error);
+                    if (loading) {
+                        loading.style.display = 'none';
+                    }
+                }
+            }
+
+            // 初始化 Viewer
+            function initViewer(Viewer) {
+                try {
+                    updateLoadingText('正在初始化 VR 查看器...');
+
+                    // 获取插件
+                    const MarkersPlugin = getMarkersPlugin();
+                    const plugins = [];
+
+                    // 如果 MarkersPlugin 可用，添加到插件列表
+                    if (MarkersPlugin) {
+                        plugins.push([MarkersPlugin, {}]);
+                    }
+
+                    const panoramaItem = panoramaList[currentPanoramaIndex];
+                    const panoramaPath = typeof panoramaItem === 'string' ? panoramaItem : panoramaItem.path;
+                    const panoramaType = typeof panoramaItem === 'string' ? 'equirectangular' : (panoramaItem.type || 'equirectangular');
+
+                    // 根据图片类型选择适配器
+                    let adapter = undefined;
+                    if (panoramaType === 'fisheye') {
+                        const DualFisheyeAdapter = getDualFisheyeAdapter();
+                        if (DualFisheyeAdapter) {
+                            // 使用 withConfig 方法配置适配器
+                            if (typeof DualFisheyeAdapter.withConfig === 'function') {
+                                const [AdapterClass, adapterConfig] = DualFisheyeAdapter.withConfig({
+                                    // 双鱼眼配置
+                                    circularCrop: true,  // 圆形裁剪
+                                    flip: 'both'  // 翻转方向：'none', 'h', 'v', 'both'
+                                });
+                                adapter = AdapterClass;
+                                console.log('使用 DualFisheyeAdapter.withConfig() 配置鱼眼适配器');
+                            } else {
+                                adapter = DualFisheyeAdapter;
+                                console.log('使用 DualFisheyeAdapter 处理鱼眼图片');
+                            }
+                        } else {
+                            console.warn('DualFisheyeAdapter 未找到，使用默认适配器');
+                        }
+                    }
+
+                    const viewerConfig = {
+                        container: container,
+                        panorama: panoramaPath,
+                        caption: 'VR 全景展示',
+                        navbar: ['zoom', 'move', 'download', 'fullscreen'],
+                        defaultZoomLvl: 50,
+                        sphereCorrection: { pan: 0, tilt: 0, roll: 0 },
+                        plugins: plugins.length > 0 ? plugins : undefined,
+                    };
+
+                    // 如果指定了适配器，添加到配置中
+                    if (adapter) {
+                        viewerConfig.adapter = adapter;
+                    }
+
+                    // 创建 Viewer 实例
+                    const viewer = new Viewer(viewerConfig);
+
+                    // 保存viewer实例
+                    viewerInstance = viewer;
+
+                    // 加载完成
+                    viewer.addEventListener('ready', () => {
+                        if (loading) {
+                            loading.style.display = 'none';
+                        }
+                        // 创建缩略图栏
+                        createThumbnailBar();
+                        // 在VR场景中添加水印文字
+                        setTimeout(() => {
+                            addWatermarkText(viewer);
+                            // 添加建筑物标记
+                            addBuildingMarker(viewer);
+                        }, 100);
+                    });
+
+                    // 错误处理
+                    viewer.addEventListener('error', (e) => {
+                        showError('Viewer 错误: ' + (e.error || '未知错误'));
+                    });
+
+                } catch (error) {
+                    showError('初始化失败: ' + error.message);
+                }
+            }
+
+            // 检查并加载图片
+            function loadPanorama(Viewer) {
+                updateLoadingText('正在加载全景图...');
+
+                const panoramaItem = panoramaList[currentPanoramaIndex];
+                const panoramaPath = typeof panoramaItem === 'string' ? panoramaItem : panoramaItem.path;
+                const img = new Image();
+                img.onload = () => initViewer(Viewer);
+                img.onerror = () => {
+                    showError('无法加载图片: ' + panoramaPath +
+                        '\n请确保：\n1. 图片路径正确\n2. 使用本地服务器运行');
+                };
+                img.src = panoramaPath;
+            }
+
+            // 初始化主函数
+            function init() {
+                // 检查依赖
+                if (typeof THREE === 'undefined') {
+                    showError('Three.js 未加载\n请检查网络连接');
+                    return;
+                }
+
+                const Viewer = getViewer();
+                if (!Viewer) {
+                    // 尝试使用 ES 模块作为备用方案
+                    updateLoadingText('正在加载 Photo Sphere Viewer 库...');
+                    import('https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5/+esm')
+                        .then(module => loadPanorama(module.Viewer))
+                        .catch(error => showError('加载失败: ' + error.message));
+                    return;
+                }
+
+                loadPanorama(Viewer);
+            }
+
+            // 等待依赖加载
+            function waitForDependencies() {
+                if (typeof THREE !== 'undefined' && typeof PhotoSphereViewer !== 'undefined') {
+                    init();
+                } else {
+                    setTimeout(waitForDependencies, CHECK_INTERVAL);
+                }
+            }
+
+            // 全局错误处理
+            window.addEventListener('error', (e) => {
+                showError('加载错误: ' + (e.message || '未知错误'));
+            });
+
+            // 超时处理
+            const timeoutId = setTimeout(() => {
+                if (loading && loading.textContent.includes('正在加载全景图')) {
+                    showError('加载超时\n请刷新页面重试\n或检查网络连接');
+                }
+            }, MAX_WAIT_TIME);
+
+            // 页面加载完成后开始初始化
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    setTimeout(waitForDependencies, CHECK_INTERVAL);
+                });
+            } else {
+                setTimeout(waitForDependencies, CHECK_INTERVAL);
+            }
+
+            // 清理超时定时器（如果成功加载）
+            window.addEventListener('load', () => {
+                clearTimeout(timeoutId);
+            });
+        })();
+    </script>
+</body>
+
+</html>

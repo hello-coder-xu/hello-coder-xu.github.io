@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A-Frame VR 全景展示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+
+        a-scene {
+            width: 100vw !important;
+            height: 100vh !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            z-index: 1 !important;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 18px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px 40px;
+            border-radius: 8px;
+        }
+
+        /* 缩略图栏样式 */
+        #thumbnail-bar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 120px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            z-index: 999;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        #thumbnail-bar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #thumbnail-bar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #thumbnail-bar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .thumbnail-item {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            flex-shrink: 0;
+        }
+
+        .thumbnail-item:hover {
+            transform: translateX(-5px) scale(1.05);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+        }
+
+        .thumbnail-item.active {
+            border-color: #4CAF50;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+        }
+
+        .thumbnail-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thumbnail-item::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            transition: background 0.3s ease;
+        }
+
+        .thumbnail-item:hover::after {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .thumbnail-item.active::after {
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+    </style>
+</head>
+
+<body>
+    <a-scene id="vr-scene" 
+             vr-mode-ui="enabled: true" 
+             embedded
+             renderer="antialias: true; alpha: false"
+             background="color: #000000">
+        <!-- 全景图片使用 a-sky 元素 -->
+        <a-sky id="panorama-sky" 
+               src="../assets/image/pexels-pixabay-346286.jpg" 
+               rotation="0 -90 0">
+        </a-sky>
+        
+        <!-- VR 视频使用 a-videosphere 元素 -->
+        <a-videosphere id="panorama-video" 
+                       src="../assets/video/vr-video.mp4" 
+                       rotation="0 -90 0"
+                       visible="false"
+                       autoplay="true"
+                       loop="true"
+                       muted="true">
+        </a-videosphere>
+        
+        <!-- 相机控制 -->
+        <a-camera id="camera" 
+                  look-controls="enabled: true" 
+                  wasd-controls="enabled: false" 
+                  cursor="rayOrigin: mouse" 
+                  raycaster="objects: .clickable">
+        </a-camera>
+
+        <!-- 标记点容器（动态添加） -->
+        <a-entity id="markers-container"></a-entity>
+    </a-scene>
+
+    <div class="loading" id="loading">正在加载全景图...</div>
+    <div id="thumbnail-bar"></div>
+
+    <!-- A-Frame 核心库 -->
+    <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+    
+    <script>
+        (function () {
+            'use strict';
+
+            let scene = null;
+            let panoramaSky = null;
+            let panoramaVideo = null;
+            const loading = document.querySelector('#loading');
+            const thumbnailBar = document.querySelector('#thumbnail-bar');
+
+            // 全景图列表（支持图片和视频）
+            const panoramaList = [
+                { path: '../assets/image/pexels-pixabay-346286.jpg', type: 'image' },
+                { path: '../assets/image/pexels-kelly-2355305.jpg', type: 'image' },
+                { path: '../assets/image/pexels-pixabay-206926.jpg', type: 'image' },
+                { path: '../assets/video/vr-video.mp4', type: 'video' }
+            ];
+
+            let currentPanoramaIndex = 0;
+            let markersContainer = null;
+
+            // 标记点配置（根据不同的全景图显示不同的标记）
+            const markerConfigs = [
+                [
+                    { id: 'case-1', position: '0 1.5 -3', text: '案例1', yaw: 0, pitch: 0 }
+                ],
+                [
+                    { id: 'case-2', position: '2 1.5 -2', text: '案例2', yaw: 45, pitch: 0 }
+                ],
+                [
+                    { id: 'case-3', position: '-2 1.5 -2', text: '案例3', yaw: -45, pitch: 0 }
+                ]
+            ];
+
+            // 更新加载提示
+            function updateLoadingText(text) {
+                if (loading) {
+                    loading.textContent = text;
+                }
+            }
+
+            // 显示错误信息
+            function showError(message) {
+                if (loading) {
+                    loading.textContent = message;
+                    loading.style.whiteSpace = 'pre-line';
+                }
+                console.error(message);
+            }
+
+            // 创建缩略图栏
+            function createThumbnailBar() {
+                if (!thumbnailBar) return;
+
+                thumbnailBar.innerHTML = '';
+
+                panoramaList.forEach((panoramaItem, index) => {
+                    const panoramaPath = typeof panoramaItem === 'string' ? panoramaItem : panoramaItem.path;
+                    const itemType = typeof panoramaItem === 'string' ? 'image' : panoramaItem.type;
+                    const thumbnailItem = document.createElement('div');
+                    thumbnailItem.className = 'thumbnail-item';
+                    if (index === currentPanoramaIndex) {
+                        thumbnailItem.classList.add('active');
+                    }
+
+                    // 图片或视频缩略图
+                    if (itemType === 'video') {
+                        // 视频缩略图使用 video 元素
+                        const video = document.createElement('video');
+                        video.src = panoramaPath;
+                        video.muted = true;
+                        video.playsInline = true;
+                        video.preload = 'metadata';
+                        video.style.width = '100%';
+                        video.style.height = '100%';
+                        video.style.objectFit = 'cover';
+                        thumbnailItem.appendChild(video);
+                        // 添加播放图标标识
+                        const playIcon = document.createElement('div');
+                        playIcon.style.position = 'absolute';
+                        playIcon.style.top = '50%';
+                        playIcon.style.left = '50%';
+                        playIcon.style.transform = 'translate(-50%, -50%)';
+                        playIcon.style.color = '#fff';
+                        playIcon.style.fontSize = '24px';
+                        playIcon.textContent = '▶';
+                        thumbnailItem.appendChild(playIcon);
+                    } else {
+                        // 图片缩略图
+                        const img = document.createElement('img');
+                        img.src = panoramaPath;
+                        img.alt = `全景图 ${index + 1}`;
+                        img.loading = 'lazy';
+                        thumbnailItem.appendChild(img);
+                    }
+
+                    // 点击切换全景图
+                    thumbnailItem.addEventListener('click', (e) => {
+                        console.log('缩略图被点击，索引:', index);
+                        e.stopPropagation();
+                        switchPanorama(index);
+                    });
+
+                    thumbnailBar.appendChild(thumbnailItem);
+                });
+            }
+
+            // 添加标记点
+            function addMarkers(index) {
+                if (!markersContainer) {
+                    markersContainer = document.querySelector('#markers-container');
+                    if (!markersContainer) {
+                        console.warn('标记点容器未找到');
+                        return;
+                    }
+                }
+
+                // 清除之前的标记
+                markersContainer.innerHTML = '';
+
+                const markers = markerConfigs[index] || [];
+                markers.forEach(marker => {
+                    const markerEntity = document.createElement('a-entity');
+                    markerEntity.setAttribute('class', 'clickable');
+                    markerEntity.setAttribute('geometry', 'primitive: sphere');
+                    markerEntity.setAttribute('material', 'color: #4CAF50; opacity: 0.8');
+                    markerEntity.setAttribute('position', marker.position);
+                    markerEntity.setAttribute('scale', '0.2 0.2 0.2');
+                    markerEntity.setAttribute('animation__hover', 'property: scale; to: 0.25 0.25 0.25; startEvents: mouseenter; dur: 300');
+                    markerEntity.setAttribute('animation__hoverback', 'property: scale; to: 0.2 0.2 0.2; startEvents: mouseleave; dur: 300');
+                    
+                    // 添加文字标签
+                    const textEntity = document.createElement('a-text');
+                    textEntity.setAttribute('value', marker.text);
+                    textEntity.setAttribute('align', 'center');
+                    textEntity.setAttribute('position', '0 0.5 0');
+                    textEntity.setAttribute('color', '#fff');
+                    textEntity.setAttribute('scale', '2 2 2');
+                    
+                    markerEntity.appendChild(textEntity);
+                    markersContainer.appendChild(markerEntity);
+                });
+
+                console.log('标记点已添加，数量:', markers.length);
+            }
+
+            // 切换全景图或视频
+            function switchPanorama(index) {
+                if (index < 0 || index >= panoramaList.length) {
+                    console.error('索引超出范围:', index);
+                    return;
+                }
+                if (index === currentPanoramaIndex) {
+                    console.log('已经是当前全景图，无需切换');
+                    return;
+                }
+
+                // 确保获取最新的元素引用
+                if (!panoramaSky) {
+                    panoramaSky = document.querySelector('#panorama-sky');
+                }
+                if (!panoramaVideo) {
+                    panoramaVideo = document.querySelector('#panorama-video');
+                }
+
+                console.log('切换全景图，从索引', currentPanoramaIndex, '到', index);
+                const panoramaItem = panoramaList[index];
+                const itemType = typeof panoramaItem === 'string' ? 'image' : panoramaItem.type;
+                const newPanoramaPath = typeof panoramaItem === 'string' ? panoramaItem : panoramaItem.path;
+
+                // 更新缩略图栏的激活状态
+                const thumbnails = thumbnailBar.querySelectorAll('.thumbnail-item');
+                thumbnails.forEach((thumb, i) => {
+                    if (i === index) {
+                        thumb.classList.add('active');
+                    } else {
+                        thumb.classList.remove('active');
+                    }
+                });
+
+                // 显示加载提示
+                if (loading) {
+                    loading.style.display = 'block';
+                    updateLoadingText(itemType === 'video' ? '正在加载 VR 视频...' : '正在切换全景图...');
+                }
+
+                // 根据类型切换图片或视频
+                try {
+                    if (itemType === 'video') {
+                        // 切换到视频
+                        // 先隐藏图片，显示视频
+                        if (panoramaSky) {
+                            panoramaSky.setAttribute('visible', 'false');
+                        }
+                        
+                        if (panoramaVideo) {
+                            // 停止之前的视频（如果有）
+                            try {
+                                const material = panoramaVideo.components.material;
+                                if (material && material.material && material.material.map) {
+                                    const videoEl = material.material.map.image;
+                                    if (videoEl && videoEl.pause) {
+                                        videoEl.pause();
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('停止视频时出错:', e);
+                            }
+                            
+                            // 设置新视频源并启用自动播放
+                            panoramaVideo.setAttribute('src', newPanoramaPath);
+                            panoramaVideo.setAttribute('autoplay', 'true');
+                            panoramaVideo.setAttribute('muted', 'true');
+                            panoramaVideo.setAttribute('visible', 'true');
+                            
+                            // 等待视频加载 - 使用 A-Frame 事件
+                            const onVideoReady = () => {
+                                panoramaVideo.removeEventListener('materialtextureloaded', onVideoReady);
+                                panoramaVideo.removeEventListener('loaded', onVideoReady);
+                                
+                                // 确保视频自动播放（静音模式）
+                                try {
+                                    const material = panoramaVideo.components.material;
+                                    if (material && material.material && material.material.map) {
+                                        const videoEl = material.material.map.image;
+                                        if (videoEl) {
+                                            // 设置静音以确保自动播放
+                                            videoEl.muted = true;
+                                            if (videoEl.play) {
+                                                const playPromise = videoEl.play();
+                                                if (playPromise !== undefined) {
+                                                    playPromise.catch(error => {
+                                                        console.warn('视频自动播放失败，可能需要用户交互:', error);
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.warn('播放视频时出错:', e);
+                                }
+                                
+                                if (loading) {
+                                    loading.style.display = 'none';
+                                }
+                                console.log('VR 视频切换完成:', newPanoramaPath);
+                            };
+                            
+                            panoramaVideo.addEventListener('materialtextureloaded', onVideoReady);
+                            panoramaVideo.addEventListener('loaded', onVideoReady);
+                            
+                            // 设置超时，并尝试播放视频
+                            setTimeout(() => {
+                                panoramaVideo.removeEventListener('materialtextureloaded', onVideoReady);
+                                panoramaVideo.removeEventListener('loaded', onVideoReady);
+                                
+                                // 尝试播放视频（静音模式）
+                                try {
+                                    const material = panoramaVideo.components.material;
+                                    if (material && material.material && material.material.map) {
+                                        const videoEl = material.material.map.image;
+                                        if (videoEl) {
+                                            videoEl.muted = true;
+                                            if (videoEl.play) {
+                                                videoEl.play().catch(error => {
+                                                    console.warn('视频自动播放失败:', error);
+                                                });
+                                            }
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.warn('播放视频时出错:', e);
+                                }
+                                
+                                if (loading) {
+                                    loading.style.display = 'none';
+                                }
+                            }, 5000);
+                        } else {
+                            console.error('panoramaVideo 元素未找到');
+                            if (loading) {
+                                loading.style.display = 'none';
+                            }
+                        }
+                    } else {
+                        // 切换到图片
+                        // 先隐藏视频，显示图片
+                        if (panoramaVideo) {
+                            try {
+                                const material = panoramaVideo.components.material;
+                                if (material && material.material && material.material.map) {
+                                    const videoEl = material.material.map.image;
+                                    if (videoEl && videoEl.pause) {
+                                        videoEl.pause();
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('暂停视频时出错:', e);
+                            }
+                            panoramaVideo.setAttribute('visible', 'false');
+                        }
+                        
+                        // 预加载图片
+                        const img = new Image();
+                        img.onload = () => {
+                            // 图片加载成功后更新 a-sky 的 src
+                            if (panoramaSky) {
+                                panoramaSky.setAttribute('src', newPanoramaPath);
+                                panoramaSky.setAttribute('visible', 'true');
+                                
+                                // 等待 A-Frame 更新场景
+                                setTimeout(() => {
+                                    if (loading) {
+                                        loading.style.display = 'none';
+                                    }
+                                    // 添加标记点
+                                    addMarkers(index);
+                                    console.log('全景图切换完成:', newPanoramaPath);
+                                }, 500);
+                            } else {
+                                console.error('panoramaSky 元素未找到');
+                                if (loading) {
+                                    loading.style.display = 'none';
+                                }
+                            }
+                        };
+                        img.onerror = () => {
+                            console.error('图片加载失败:', newPanoramaPath);
+                            if (loading) {
+                                loading.style.display = 'none';
+                            }
+                            showError('无法加载图片: ' + newPanoramaPath);
+                        };
+                        img.src = newPanoramaPath;
+                    }
+                    
+                    currentPanoramaIndex = index;
+
+                } catch (error) {
+                    console.error('切换失败:', error);
+                    if (loading) {
+                        loading.style.display = 'none';
+                    }
+                    showError('切换失败: ' + error.message);
+                }
+            }
+
+            // 初始化
+            function init() {
+                // 检查 A-Frame 是否加载
+                if (typeof AFRAME === 'undefined') {
+                    showError('A-Frame 未加载\n请检查网络连接');
+                    return;
+                }
+
+                try {
+                    updateLoadingText('正在初始化 VR 查看器...');
+
+                    // 获取场景和全景图元素
+                    scene = document.querySelector('#vr-scene');
+                    panoramaSky = document.querySelector('#panorama-sky');
+                    panoramaVideo = document.querySelector('#panorama-video');
+
+                    if (!scene || !panoramaSky) {
+                        console.warn('场景元素未找到，等待 DOM 加载...');
+                        setTimeout(init, 200);
+                        return;
+                    }
+
+                    // 等待场景加载完成
+                    if (scene.hasLoaded) {
+                        // 场景已经加载完成
+                        handleSceneLoaded();
+                    } else {
+                        scene.addEventListener('loaded', handleSceneLoaded);
+                    }
+
+                } catch (error) {
+                    showError('初始化失败: ' + error.message);
+                    console.error('初始化错误:', error);
+                }
+            }
+
+            // 处理场景加载完成
+            function handleSceneLoaded() {
+                console.log('A-Frame 场景加载完成');
+                console.log('场景对象:', scene);
+                
+                // 确保获取全景图元素
+                if (!panoramaSky) {
+                    panoramaSky = document.querySelector('#panorama-sky');
+                }
+                if (!panoramaVideo) {
+                    panoramaVideo = document.querySelector('#panorama-video');
+                }
+
+                if (!panoramaSky) {
+                    console.error('全景图元素未找到');
+                    showError('全景图元素未找到');
+                    return;
+                }
+                
+                // 检查当前项是图片还是视频
+                const currentItem = panoramaList[currentPanoramaIndex];
+                const currentType = typeof currentItem === 'string' ? 'image' : currentItem.type;
+                
+                if (currentType === 'video') {
+                    // 如果是视频，处理视频加载
+                    if (panoramaVideo) {
+                        panoramaSky.setAttribute('visible', 'false');
+                        panoramaVideo.setAttribute('autoplay', 'true');
+                        panoramaVideo.setAttribute('muted', 'true');
+                        panoramaVideo.setAttribute('visible', 'true');
+                        
+                        // 使用 A-Frame 事件监听视频加载
+                        const onVideoReady = () => {
+                            panoramaVideo.removeEventListener('materialtextureloaded', onVideoReady);
+                            panoramaVideo.removeEventListener('loaded', onVideoReady);
+                            
+                            // 确保视频自动播放（静音模式）
+                            try {
+                                const material = panoramaVideo.components.material;
+                                if (material && material.material && material.material.map) {
+                                    const videoEl = material.material.map.image;
+                                    if (videoEl) {
+                                        videoEl.muted = true;
+                                        if (videoEl.play) {
+                                            videoEl.play().catch(error => {
+                                                console.warn('视频自动播放失败:', error);
+                                            });
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('播放视频时出错:', e);
+                            }
+                            
+                            handleImageLoaded();
+                        };
+                        
+                        panoramaVideo.addEventListener('materialtextureloaded', onVideoReady);
+                        panoramaVideo.addEventListener('loaded', onVideoReady);
+                        
+                        setTimeout(() => {
+                            panoramaVideo.removeEventListener('materialtextureloaded', onVideoReady);
+                            panoramaVideo.removeEventListener('loaded', onVideoReady);
+                            
+                            // 尝试播放视频
+                            try {
+                                const material = panoramaVideo.components.material;
+                                if (material && material.material && material.material.map) {
+                                    const videoEl = material.material.map.image;
+                                    if (videoEl && videoEl.play) {
+                                        videoEl.play().catch(error => {
+                                            console.warn('视频自动播放失败:', error);
+                                        });
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('播放视频时出错:', e);
+                            }
+                            
+                            handleImageLoaded();
+                        }, 3000);
+                    } else {
+                        handleImageLoaded();
+                    }
+                    return;
+                }
+
+                console.log('全景图元素:', panoramaSky);
+                console.log('全景图src属性:', panoramaSky.getAttribute('src'));
+
+                // 检查场景是否可见
+                const sceneEl = scene;
+                if (sceneEl) {
+                    const canvas = sceneEl.canvas;
+                    if (canvas) {
+                        console.log('场景canvas已创建:', canvas.width, 'x', canvas.height);
+                    } else {
+                        console.warn('场景canvas未创建');
+                    }
+                }
+
+                // 检查全景图是否已经加载
+                const checkImageLoaded = () => {
+                    try {
+                        const material = panoramaSky.getAttribute('material');
+                        const src = panoramaSky.getAttribute('src');
+                        console.log('检查图片加载状态 - src:', src, 'material:', material);
+                        
+                        // 直接尝试加载，不等待material
+                        if (src) {
+                            // 监听图片加载事件
+                            const onImageLoaded = () => {
+                                panoramaSky.removeEventListener('loaded', onImageLoaded);
+                                panoramaSky.removeEventListener('materialtextureloaded', onImageLoaded);
+                                handleImageLoaded();
+                            };
+                            
+                            panoramaSky.addEventListener('loaded', onImageLoaded);
+                            panoramaSky.addEventListener('materialtextureloaded', onImageLoaded);
+                            
+                            // 设置超时
+                            setTimeout(() => {
+                                panoramaSky.removeEventListener('loaded', onImageLoaded);
+                                panoramaSky.removeEventListener('materialtextureloaded', onImageLoaded);
+                                // 即使超时也继续，可能图片已经加载了
+                                handleImageLoaded();
+                            }, 3000);
+                        } else {
+                            console.error('全景图src属性为空');
+                            showError('全景图路径未设置');
+                        }
+                    } catch (error) {
+                        console.error('检查图片加载时出错:', error);
+                        // 即使出错也尝试继续
+                        setTimeout(handleImageLoaded, 500);
+                    }
+                };
+
+                // 延迟检查，确保 A-Frame 已初始化
+                setTimeout(checkImageLoaded, 300);
+            }
+
+            // 处理图片或视频加载完成
+            function handleImageLoaded() {
+                console.log('内容加载完成处理函数被调用');
+                
+                // 确保场景可见
+                if (scene) {
+                    const sceneEl = scene;
+                    if (sceneEl && sceneEl.canvas) {
+                        sceneEl.canvas.style.display = 'block';
+                        sceneEl.canvas.style.width = '100%';
+                        sceneEl.canvas.style.height = '100%';
+                        console.log('场景canvas样式已设置');
+                    }
+                }
+                
+                if (loading) {
+                    loading.style.display = 'none';
+                }
+                // 创建缩略图栏
+                createThumbnailBar();
+                
+                // 只有图片才添加标记点，视频不添加
+                const currentItem = panoramaList[currentPanoramaIndex];
+                const currentType = typeof currentItem === 'string' ? 'image' : currentItem.type;
+                if (currentType === 'image') {
+                    addMarkers(currentPanoramaIndex);
+                }
+                console.log('VR 内容加载完成');
+            }
+
+            // 处理图片加载错误
+            function handleImageError(e) {
+                console.error('全景图加载错误:', e);
+                showError('加载失败: 请检查图片路径和格式\n确保使用本地服务器运行');
+            }
+
+            // 等待 A-Frame 加载
+            function waitForAFrame() {
+                if (typeof AFRAME !== 'undefined') {
+                    console.log('A-Frame 库已加载');
+                    // 额外等待一下确保 A-Frame 完全初始化
+                    setTimeout(init, 500);
+                } else {
+                    setTimeout(waitForAFrame, 100);
+                }
+            }
+
+            // 全局错误处理
+            window.addEventListener('error', (e) => {
+                console.error('全局错误:', e);
+                showError('加载错误: ' + (e.message || '未知错误'));
+            });
+
+            // 监听 A-Frame 场景就绪事件
+            window.addEventListener('load', () => {
+                console.log('页面加载完成');
+                // 确保场景元素存在
+                const sceneCheck = setInterval(() => {
+                    const sceneEl = document.querySelector('#vr-scene');
+                    if (sceneEl && sceneEl.hasLoaded) {
+                        console.log('场景已就绪');
+                        clearInterval(sceneCheck);
+                        // 如果初始化还没完成，强制触发
+                        if (loading && loading.style.display !== 'none') {
+                            setTimeout(() => {
+                                if (panoramaSky) {
+                                    handleImageLoaded();
+                                }
+                            }, 1000);
+                        }
+                    }
+                }, 500);
+                
+                // 10秒后停止检查
+                setTimeout(() => clearInterval(sceneCheck), 10000);
+            });
+
+            // 页面加载完成后开始初始化
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    setTimeout(waitForAFrame, 100);
+                });
+            } else {
+                setTimeout(waitForAFrame, 100);
+            }
+
+        })();
+    </script>
+</body>
+
+</html>
+

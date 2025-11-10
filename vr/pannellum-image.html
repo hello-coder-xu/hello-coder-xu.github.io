@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pannellum VR 全景展示</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #panorama {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 18px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px 40px;
+            border-radius: 8px;
+        }
+
+        /* 缩略图栏样式 */
+        #thumbnail-bar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 120px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            z-index: 999;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        #thumbnail-bar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #thumbnail-bar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #thumbnail-bar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .thumbnail-item {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            flex-shrink: 0;
+        }
+
+        .thumbnail-item:hover {
+            transform: translateX(-5px) scale(1.05);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+        }
+
+        .thumbnail-item.active {
+            border-color: #4CAF50;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+        }
+
+        .thumbnail-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thumbnail-item::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            transition: background 0.3s ease;
+        }
+
+        .thumbnail-item:hover::after {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .thumbnail-item.active::after {
+            background: rgba(76, 175, 80, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="panorama"></div>
+    <div class="loading" id="loading">正在加载全景图...</div>
+    <div id="thumbnail-bar"></div>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+    <script>
+        (function () {
+            'use strict';
+
+            const panoramaContainer = document.querySelector('#panorama');
+            const loading = document.querySelector('#loading');
+            const thumbnailBar = document.querySelector('#thumbnail-bar');
+
+            // 全景图列表
+            const panoramaList = [
+                { path: '../assets/image/pexels-pixabay-346286.jpg', type: 'equirectangular' },
+                { path: '../assets/image/pexels-kelly-2355305.jpg', type: 'equirectangular' },
+                { path: '../assets/image/pexels-pixabay-206926.jpg', type: 'equirectangular' }
+            ];
+
+            let currentPanoramaIndex = 0;
+            let viewer = null;
+
+            const MAX_WAIT_TIME = 10000; // 最大等待时间（毫秒）
+            const CHECK_INTERVAL = 100; // 依赖检查间隔（毫秒）
+
+            // 更新加载提示
+            function updateLoadingText(text) {
+                if (loading) {
+                    loading.textContent = text;
+                }
+            }
+
+            // 显示错误信息
+            function showError(message) {
+                if (loading) {
+                    loading.textContent = message;
+                    loading.style.whiteSpace = 'pre-line';
+                }
+                console.error(message);
+            }
+
+            // 创建缩略图栏
+            function createThumbnailBar() {
+                if (!thumbnailBar) return;
+
+                thumbnailBar.innerHTML = '';
+
+                panoramaList.forEach((panoramaItem, index) => {
+                    const panoramaPath = typeof panoramaItem === 'string' ? panoramaItem : panoramaItem.path;
+                    const thumbnailItem = document.createElement('div');
+                    thumbnailItem.className = 'thumbnail-item';
+                    if (index === currentPanoramaIndex) {
+                        thumbnailItem.classList.add('active');
+                    }
+
+                    // 图片缩略图
+                    const img = document.createElement('img');
+                    img.src = panoramaPath;
+                    img.alt = `全景图 ${index + 1}`;
+                    img.loading = 'lazy';
+                    thumbnailItem.appendChild(img);
+
+                    // 点击切换全景图
+                    thumbnailItem.addEventListener('click', (e) => {
+                        console.log('缩略图被点击，索引:', index);
+                        e.stopPropagation();
+                        switchPanorama(index);
+                    });
+
+                    thumbnailBar.appendChild(thumbnailItem);
+                });
+            }
+
+            // 切换全景图
+            function switchPanorama(index) {
+                if (index < 0 || index >= panoramaList.length) {
+                    console.error('索引超出范围:', index);
+                    return;
+                }
+                if (index === currentPanoramaIndex) {
+                    console.log('已经是当前全景图，无需切换');
+                    return;
+                }
+
+                console.log('切换全景图，从索引', currentPanoramaIndex, '到', index);
+                currentPanoramaIndex = index;
+                const panoramaItem = panoramaList[index];
+                const newPanoramaPath = typeof panoramaItem === 'string' ? panoramaItem : panoramaItem.path;
+
+                // 更新缩略图栏的激活状态
+                const thumbnails = thumbnailBar.querySelectorAll('.thumbnail-item');
+                thumbnails.forEach((thumb, i) => {
+                    if (i === index) {
+                        thumb.classList.add('active');
+                    } else {
+                        thumb.classList.remove('active');
+                    }
+                });
+
+                // 显示加载提示
+                if (loading) {
+                    loading.style.display = 'block';
+                    updateLoadingText('正在切换全景图...');
+                }
+
+                // 切换全景图：销毁旧的 viewer 并创建新的
+                try {
+                    // 如果存在旧的 viewer，先销毁
+                    if (viewer) {
+                        try {
+                            viewer.destroy();
+                            viewer = null;
+                        } catch (e) {
+                            console.warn('销毁旧 viewer 时出错:', e);
+                        }
+                    }
+
+                    // 清空容器
+                    const container = document.getElementById('panorama');
+                    if (container) {
+                        container.innerHTML = '';
+                    }
+
+                    // 重新创建 viewer
+                    console.log('开始切换全景图:', newPanoramaPath);
+                    viewer = pannellum.viewer('panorama', {
+                        "type": "equirectangular",
+                        "panorama": newPanoramaPath,
+                        "autoLoad": true,
+                        "autoRotate": 0,
+                        "showControls": true,
+                        "compass": false,
+                        "hfov": 100,
+                        "minHfov": 50,
+                        "maxHfov": 120,
+                        "pitch": 0,
+                        "yaw": 0
+                    });
+
+                    // 监听加载完成事件
+                    const switchLoadHandler = function() {
+                        console.log('全景图切换完成:', newPanoramaPath);
+                        if (loading) {
+                            loading.style.display = 'none';
+                        }
+                        viewer.off('load', switchLoadHandler);
+                    };
+                    viewer.on('load', switchLoadHandler);
+
+                    // 监听错误事件
+                    const switchErrorHandler = function(error) {
+                        console.error('切换错误:', error);
+                        if (loading) {
+                            loading.style.display = 'none';
+                        }
+                        showError('切换失败: ' + (error.message || '未知错误'));
+                        viewer.off('error', switchErrorHandler);
+                    };
+                    viewer.on('error', switchErrorHandler);
+
+                } catch (error) {
+                    console.error('切换失败:', error);
+                    if (loading) {
+                        loading.style.display = 'none';
+                    }
+                    showError('切换失败: ' + error.message);
+                }
+            }
+
+            // 初始化 Pannellum 查看器
+            function initViewer() {
+                // 检查 Pannellum 是否加载
+                if (typeof pannellum === 'undefined') {
+                    showError('Pannellum 未加载\n请检查网络连接');
+                    return;
+                }
+
+                try {
+                    updateLoadingText('正在初始化 VR 查看器...');
+
+                    const panoramaItem = panoramaList[currentPanoramaIndex];
+                    const panoramaPath = typeof panoramaItem === 'string' ? panoramaItem : panoramaItem.path;
+
+                    viewer = pannellum.viewer('panorama', {
+                        "type": "equirectangular",
+                        "panorama": panoramaPath,
+                        "autoLoad": true,
+                        "autoRotate": 0,
+                        "showControls": true,
+                        "compass": false,
+                        "hfov": 100,
+                        "minHfov": 50,
+                        "maxHfov": 120,
+                        "pitch": 0,
+                        "yaw": 0
+                    });
+
+                    // 监听加载完成事件
+                    const loadHandler = function() {
+                        if (loading) {
+                            loading.style.display = 'none';
+                        }
+                        // 创建缩略图栏
+                        createThumbnailBar();
+                        console.log('VR 全景图加载完成');
+                    };
+
+                    viewer.on('load', loadHandler);
+
+                    // 监听错误事件
+                    const errorHandler = function(error) {
+                        showError('加载失败: ' + (error.message || '未知错误'));
+                        console.error('加载错误:', error);
+                    };
+
+                    viewer.on('error', errorHandler);
+
+                } catch (error) {
+                    showError('初始化失败: ' + error.message);
+                    console.error('初始化错误:', error);
+                }
+            }
+
+            // 检查并加载图片
+            function loadPanorama() {
+                updateLoadingText('正在加载全景图...');
+
+                const panoramaItem = panoramaList[currentPanoramaIndex];
+                const panoramaPath = typeof panoramaItem === 'string' ? panoramaItem : panoramaItem.path;
+                const img = new Image();
+                img.onload = () => initViewer();
+                img.onerror = () => {
+                    showError('无法加载图片: ' + panoramaPath +
+                        '\n请确保：\n1. 图片路径正确\n2. 使用本地服务器运行');
+                };
+                img.src = panoramaPath;
+            }
+
+            // 初始化主函数
+            function init() {
+                // 检查依赖
+                if (typeof pannellum === 'undefined') {
+                    showError('Pannellum 未加载\n请检查网络连接');
+                    return;
+                }
+
+                loadPanorama();
+            }
+
+            // 等待依赖加载
+            function waitForDependencies() {
+                if (typeof pannellum !== 'undefined') {
+                    init();
+                } else {
+                    setTimeout(waitForDependencies, CHECK_INTERVAL);
+                }
+            }
+
+            // 全局错误处理
+            window.addEventListener('error', (e) => {
+                showError('加载错误: ' + (e.message || '未知错误'));
+            });
+
+            // 超时处理
+            const timeoutId = setTimeout(() => {
+                if (loading && loading.textContent.includes('正在加载全景图')) {
+                    showError('加载超时\n请刷新页面重试\n或检查网络连接');
+                }
+            }, MAX_WAIT_TIME);
+
+            // 页面加载完成后开始初始化
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    setTimeout(waitForDependencies, CHECK_INTERVAL);
+                });
+            } else {
+                setTimeout(waitForDependencies, CHECK_INTERVAL);
+            }
+
+            // 清理超时定时器（如果成功加载）
+            window.addEventListener('load', () => {
+                clearTimeout(timeoutId);
+            });
+        })();
+    </script>
+</body>
+
+</html>
+
