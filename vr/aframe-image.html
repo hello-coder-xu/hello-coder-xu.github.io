@@ -179,7 +179,7 @@
     <a-scene id="vr-scene" vr-mode-ui="enabled: true" embedded renderer="antialias: true; alpha: false"
         background="color: #000000">
         <!-- 全景图片使用 a-sky 元素 -->
-        <a-sky id="panorama-sky" src="../assets/image/pexels-pixabay-346286.jpg" rotation="0 -90 0">
+        <a-sky id="panorama-sky" src="../assets/image/pexels-pixabay-206926.jpg" rotation="0 -90 0">
         </a-sky>
 
         <!-- VR 视频使用 a-videosphere 元素 -->
@@ -218,8 +218,6 @@
 
             // 全景图列表（支持图片和视频）
             const panoramaList = [
-                { path: '../assets/image/pexels-pixabay-346286.jpg', type: 'image' },
-                { path: '../assets/image/pexels-kelly-2355305.jpg', type: 'image' },
                 { path: '../assets/image/pexels-pixabay-206926.jpg', type: 'image' },
                 { path: '../assets/video/vr-video.mp4', type: 'video' }
             ];
@@ -231,13 +229,7 @@
             // 标记点配置（根据不同的全景图显示不同的标记）
             const markerConfigs = [
                 [
-                    { id: 'case-1', position: '0 1.5 -3', text: '案例1', yaw: 0, pitch: 0 }
-                ],
-                [
-                    { id: 'case-2', position: '2 1.5 -2', text: '案例2', yaw: 45, pitch: 0 }
-                ],
-                [
-                    { id: 'case-3', position: '-2 1.5 -2', text: '案例3', yaw: -45, pitch: 0 }
+                    { id: 'case-1', position: '-2 1.5 -2', text: '案例1', yaw: -45, pitch: 0 }
                 ],
                 [] // 视频没有标记点
             ];
